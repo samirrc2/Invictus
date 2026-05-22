@@ -1,0 +1,21 @@
+TESLA INC. FORM 10-K ANNUAL REPORT (EXCERPTS)
+
+ITEM 1. BUSINESS
+Tesla, Inc. designs, develops, manufactures, sells and leases high-performance fully electric vehicles, and energy generation and storage systems, and offers services related to its products. Tesla's automotive products include Model 3, Model Y, Model S, Model X, Cybertruck, and the Tesla Semi. The Company also produces energy storage products (Megapack, Powerwall) and solar energy systems. Tesla is developing Full Self-Driving (FSD) autonomous driving technology and a humanoid robot (Optimus).
+
+ITEM 1A. RISK FACTORS
+The automotive market is highly competitive with increasing EV offerings from traditional automakers and new entrants. Tesla's vehicle deliveries are subject to seasonal and quarterly fluctuations. The Company has experienced significant price reductions which pressure margins. Regulatory credits revenue may decline as competitors increase EV production. Supply chain disruptions and raw material cost increases (lithium, cobalt, nickel) could affect production. FSD technology faces regulatory, technical, and liability uncertainties. International operations expose Tesla to geopolitical risks, particularly in China. The Company's stock price is highly volatile and may not reflect fundamental valuation.
+
+ITEM 7. MANAGEMENT'S DISCUSSION AND ANALYSIS
+Automotive Revenue: Total automotive revenue was $82.4 billion, an increase of 4% year over year. Vehicle deliveries reached 1.95 million units. Average selling price declined 12% due to strategic price reductions to maintain volume growth and market share.
+
+Energy Generation and Storage: Revenue increased 67% to $11.3 billion driven by strong Megapack demand from utility-scale customers. Energy storage deployments reached 31.4 GWh. This segment is becoming an increasingly important growth driver.
+
+Gross Margin: Automotive gross margin (excluding credits) was 16.3%, down from 18.2% in the prior year due to price reductions, Cybertruck production ramp costs, and factory underutilization. Energy segment gross margin improved to 26.8%.
+
+FSD and Autonomy: The Company recognized $2.1 billion in FSD-related deferred revenue. FSD supervised is available in North America with expanding capabilities. The robotaxi program is in development with plans for commercial deployment.
+
+Capital Expenditure: CapEx was $11.2 billion focused on expanding manufacturing capacity, AI training infrastructure for FSD development, and the Cortex supercomputer cluster.
+
+ITEM 8. FINANCIAL STATEMENTS
+Net Revenue: $97.7 billion. Net Income: $7.1 billion. Gross Margin: 18.2%. Operating Margin: 8.4%. Cash and equivalents: $29.1 billion. Total debt: $5.6 billion. Free Cash Flow: $4.4 billion.

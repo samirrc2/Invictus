@@ -1,0 +1,23 @@
+ADVANCED MICRO DEVICES INC. FORM 10-K ANNUAL REPORT (EXCERPTS)
+
+ITEM 1. BUSINESS
+Advanced Micro Devices, Inc. is a global semiconductor company. The Company's products include x86 microprocessors, graphics processing units (GPUs), data center accelerators, field programmable gate arrays (FPGAs), and adaptive system-on-chip (SoC) products. AMD operates in four segments: Data Center, Client, Gaming, and Embedded. The acquisition of Xilinx significantly expanded AMD's product portfolio and addressable market.
+
+ITEM 1A. RISK FACTORS
+AMD's operating results are subject to quarterly and seasonal fluctuations. The semiconductor industry is highly competitive. AMD's success depends on its ability to develop and introduce competitive new products. AMD relies on third-party manufacturers including TSMC for fabrication. Disruptions in the supply chain could adversely affect AMD's business. The AI accelerator market is intensely competitive with NVIDIA maintaining significant market share. AMD's Data Center GPU products face adoption challenges. Geopolitical tensions, particularly between the U.S. and China, could restrict AMD's ability to sell products.
+
+ITEM 7. MANAGEMENT'S DISCUSSION AND ANALYSIS
+Data Center Segment: Revenue increased 115% year over year to $12.6 billion, driven by strong demand for EPYC server processors and growing adoption of Instinct MI300 AI accelerators. The ramp of AI-related products significantly exceeded expectations.
+
+Client Segment: Revenue increased 29% driven by the launch of Ryzen processors with AI capabilities. The PC market showed signs of recovery with enterprise refresh cycles beginning.
+
+Gaming Segment: Revenue declined 58% year over year due to lower semi-custom revenue as the current console cycle matures. Discrete GPU sales remained competitive.
+
+Embedded Segment: Revenue declined 33% as customers continued to normalize inventory levels following the post-pandemic demand surge.
+
+Gross Margin: Non-GAAP gross margin expanded to 53.1%, up from 50.8% in the prior year, driven by favorable product mix shift toward higher-margin Data Center products. AI accelerator gross margins are accretive to the corporate average.
+
+Operating Expenses: R&D expense increased 18% year over year as AMD continues to invest in AI and data center product roadmaps. The Company now allocates approximately 25% of R&D spending to AI-related initiatives.
+
+ITEM 8. FINANCIAL STATEMENTS
+Net Revenue: $25.8 billion. Net Income: $4.3 billion. Gross Margin: 50.5% (GAAP). Operating Margin: 21.9%. Cash: $5.8 billion. Total debt: $1.7 billion. Free Cash Flow: $4.9 billion.

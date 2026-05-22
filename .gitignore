@@ -1,0 +1,33 @@
+# Invictus - Git Ignore
+# ──────────────────────────────────────────────────────────────────────
+
+# Environment & Secrets
+.env
+.env.example
+*.key
+*.pem
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+env/
+.env/
+
+# RAG & Local Data Vaults
+invictus/rag/sec_vault/
+invictus/rag/transcripts/
+sec-edgar-filings/
+analytics.db
+*.sqlite
+*.csv
+*.parquet
+*.json
+
+# OS & IDE
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*.bak

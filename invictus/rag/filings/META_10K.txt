@@ -1,0 +1,21 @@
+META PLATFORMS INC. FORM 10-K ANNUAL REPORT (EXCERPTS)
+
+ITEM 1. BUSINESS
+Meta Platforms, Inc. builds technologies that help people connect, find communities, and grow businesses. The Company's products include Facebook, Instagram, Messenger, WhatsApp, and Meta Quest virtual and augmented reality devices. Meta operates in two segments: Family of Apps (FoA) and Reality Labs (RL). The Company generates substantially all of its revenue from advertising.
+
+ITEM 1A. RISK FACTORS
+Meta derives substantially all of its revenue from advertising. Changes in advertising demand, pricing, or regulations could materially affect results. Privacy regulations including GDPR and state-level privacy laws create compliance costs and limit data collection capabilities. Apple's App Tracking Transparency framework continues to impact ad targeting effectiveness. The Company faces intense competition from TikTok, YouTube, Snapchat, and emerging platforms. Reality Labs has incurred cumulative operating losses exceeding $50 billion. AI infrastructure investments require substantial capital expenditure with uncertain returns. Content moderation challenges and regulatory scrutiny across multiple jurisdictions remain ongoing risks.
+
+ITEM 7. MANAGEMENT'S DISCUSSION AND ANALYSIS
+Revenue: Total revenue increased 22% year over year to $161.4 billion, driven by growth in ad impressions and average price per ad. Family of Apps revenue grew 23%. Reality Labs revenue grew 15% but the segment continued to generate significant operating losses.
+
+Advertising Performance: Ad impressions delivered across the Family of Apps increased 12% year over year. Average price per ad increased 10%. Reels monetization efficiency improved significantly. AI-powered ad targeting and recommendation systems drove meaningful improvements in advertiser ROI.
+
+AI Investments: Capital expenditures increased 42% to $39.2 billion, primarily for AI infrastructure including GPU clusters for training and inference. The Company views AI as fundamental to improving core advertising products, content recommendation, and building new AI-powered products.
+
+Reality Labs: The segment generated $3.8 billion in revenue and $17.7 billion in operating losses. Meta continues to invest in the metaverse and mixed reality despite near-term financial headwinds.
+
+Operating Margin: Overall operating margin expanded to 41.2%, up from 34.7% in the prior year, driven by the Year of Efficiency initiatives and strong revenue growth. Family of Apps operating margin reached 52.8%.
+
+ITEM 8. FINANCIAL STATEMENTS
+Net Revenue: $161.4 billion. Net Income: $62.4 billion. Gross Margin: 81.5%. Operating Margin: 41.2%. Cash and equivalents: $58.3 billion. Total debt: $28.8 billion. Free Cash Flow: $52.1 billion.
