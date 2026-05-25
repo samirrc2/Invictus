@@ -91,11 +91,15 @@ def _compute_scenario_impact(
     ticker_df = pd.DataFrame(ticker_impacts).sort_values("P&L ($)")
     portfolio_return = total_loss / total_value if total_value > 0 else 0.0
 
-    # Worst hit tickers (top 3 losses)
-    worst_3 = ticker_df.head(3)[["Ticker", "Scenario Return", "P&L ($)"]].to_dict("records")
+    # Worst hit tickers (largest dollar losses — most negative P&L first)
+    n_worst = min(3, len(ticker_df) // 2) or 1
+    worst_df = ticker_df.head(n_worst)
+    worst_3 = worst_df[["Ticker", "Scenario Return", "P&L ($)"]].to_dict("records")
 
-    # Best performers (top 3 gains or smallest losses)
-    best_3 = ticker_df.tail(3)[["Ticker", "Scenario Return", "P&L ($)"]].to_dict("records")
+    # Least impacted (exclude worst tickers to avoid overlap in small portfolios)
+    worst_tickers_set = set(worst_df["Ticker"])
+    best_df = ticker_df[~ticker_df["Ticker"].isin(worst_tickers_set)].tail(3).iloc[::-1]
+    best_3 = best_df[["Ticker", "Scenario Return", "P&L ($)"]].to_dict("records")
 
     return {
         "portfolio_return": portfolio_return,

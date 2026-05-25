@@ -7,7 +7,7 @@ import numpy as np
 from typing import Dict, Any, Optional
 
 from invictus.agents.graph_state import PortfolioState
-from invictus.config import OPENAI_API_KEY, LLM_MODEL, LLM_TEMPERATURE
+from invictus.llm import call_llm_text, llm_available, get_provider
 
 
 def _build_context(state: PortfolioState) -> Dict[str, str]:
@@ -112,22 +112,18 @@ def _template_commentary(ctx: Dict[str, str], style: str) -> str:
 
 
 def _llm_commentary(ctx: Dict[str, str], style: str) -> Optional[str]:
-    """Generate commentary using OpenAI API if available."""
-    if not OPENAI_API_KEY:
+    """Generate commentary using LLM if available."""
+    if not llm_available():
         return None
 
-    try:
-        from openai import OpenAI
-        client = OpenAI(api_key=OPENAI_API_KEY)
+    style_instructions = {
+        "concise": "Write a 2-3 sentence concise portfolio summary.",
+        "detailed": "Write a detailed 4-paragraph portfolio commentary covering performance, attribution, risk, and actionable items.",
+        "risk_manager": "Write from the perspective of a risk manager. Focus on risk metrics, exposures, regime, and protective actions.",
+        "pm_investor": "Write from the perspective of a portfolio manager. Focus on alpha generation, positioning, and forward-looking views.",
+    }
 
-        style_instructions = {
-            "concise": "Write a 2-3 sentence concise portfolio summary.",
-            "detailed": "Write a detailed 4-paragraph portfolio commentary covering performance, attribution, risk, and actionable items.",
-            "risk_manager": "Write from the perspective of a risk manager. Focus on risk metrics, exposures, regime, and protective actions.",
-            "pm_investor": "Write from the perspective of a portfolio manager. Focus on alpha generation, positioning, and forward-looking views.",
-        }
-
-        prompt = f"""You are a senior portfolio analyst at a quantitative investment firm.
+    prompt = f"""You are a senior portfolio analyst at a quantitative investment firm.
 Generate portfolio commentary based on today's data.
 
 Style: {style_instructions.get(style, style_instructions['detailed'])}
@@ -144,15 +140,32 @@ Data:
 
 Be specific with numbers. Do not hallucinate data not provided above."""
 
-        response = client.chat.completions.create(
-            model=LLM_MODEL,
-            messages=[{"role": "user", "content": prompt}],
-            temperature=LLM_TEMPERATURE,
-            max_tokens=800,
-        )
-        return response.choices[0].message.content
+    try:
+        import time as _t
+        _start = _t.perf_counter()
+        raw = call_llm_text(prompt, max_tokens=800)
+        _latency = (_t.perf_counter() - _start) * 1000
+
+        try:
+            from invictus.observability.collectors.llm_collector import log_llm_call
+            log_llm_call(
+                agent_name="commentary_agent", model=get_provider(),
+                prompt=prompt, response=raw,
+                tokens_in=len(prompt) // 4,
+                tokens_out=len(raw) // 4,
+                latency_ms=_latency,
+            )
+        except Exception:
+            pass
+
+        return raw
 
     except Exception as e:
+        try:
+            from invictus.observability.collectors.llm_collector import log_llm_call
+            log_llm_call("commentary_agent", model=get_provider(), fallback_used=True, fallback_reason=str(e)[:200])
+        except Exception:
+            pass
         return None
 
 

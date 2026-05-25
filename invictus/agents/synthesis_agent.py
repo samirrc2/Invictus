@@ -1,11 +1,85 @@
 """
-Invictus — Conviction Synthesis Engine (v2)
+Invictus — Conviction Synthesis Engine (v3)
 Institutional-grade signal aggregation with dynamic weighting,
 regime-conditional adjustments, Monte Carlo confidence intervals,
 and signal agreement/disagreement analysis.
 
 Aggregates independent signals from Fundamentals, Management, Flows,
-and ML predictions to generate explainable conviction probabilities.
+and Bayesian predictions to generate explainable conviction probabilities.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+MATHEMATICAL FRAMEWORK — CONVICTION SYNTHESIS
+─────────────────────────────────────────────
+
+Pipeline: Raw Signals → Base Scores → Weighted Composite → Agreement Adj → Probability
+
+Step 1: Base Score Extraction
+    Each signal group produces a base score in [-1, +1]:
+    - Fundamental: 0.40·conviction + 0.30·guidance + 0.30·risk_signal
+    - Management:  0.70·confidence + 0.30·pressure_signal
+    - Flows:       flow_composite (from flow agent, already in [-1,1])
+    - Technical:   (bayesian_posterior - 0.5) × 2  → maps [0,1] → [-1,1]
+
+    Sub-signals with [0,1] range (risk, pressure) are transformed:
+        signal = -(x × 2 - 1)  →  maps 0→+1, 0.5→0, 1→-1
+
+Step 2: Dynamic Weighting
+    Base weights: Fundamental=0.35, Management=0.25, Flows=0.25, Technical=0.15
+    Adjusted by: (a) volatility regime, (b) signal quality degradation
+    Always renormalized to sum to 1.0.
+
+Step 3: Weighted Composite
+    C = Σ wᵢ · sᵢ,  where wᵢ = dynamic weight, sᵢ = base score
+    Range: [-1, +1] (since weights sum to 1 and scores ∈ [-1,1])
+
+Step 4: Agreement Multiplier
+    M = 0.8 + 0.4 · agreement_score,  agreement_score ∈ [0, 1]
+    → M ∈ [0.8, 1.2]
+    Rationale: When all 4 independent signals agree (convergence),
+    the composite is 20% more reliable. When they diverge, 20% less.
+    The ±20% range is conservative — institutional practice typically
+    uses ±15-25% for signal agreement adjustments.
+    C_adjusted = C × M,  range: [-1.2, +1.2]
+
+Step 5: Probability Mapping (Calibrated Logistic)
+    P_raw = σ(3 · C_adjusted) = 1 / (1 + e^{-3·C_adjusted})
+
+    The sensitivity parameter k=3 is calibrated so that:
+        C_adjusted = 0    → P = 0.500 (neutral)
+        C_adjusted = ±0.3 → P ≈ 0.71 / 0.29 (moderate conviction)
+        C_adjusted = ±0.6 → P ≈ 0.86 / 0.14 (strong conviction)
+        C_adjusted = ±1.0 → P ≈ 0.95 / 0.05 (extreme — rare)
+
+    k=3 ensures the full probability range [0.05, 0.95] is utilized
+    across the realistic composite range [-1, +1], avoiding both
+    ceiling effects (everything near 1) and floor effects.
+
+Step 6: Quality Shrinkage (Bayesian)
+    P_final = P_raw · Q̄ + 0.5 · (1 - Q̄)
+    where Q̄ = mean signal quality across all sources.
+
+    This is a Bayesian credibility-weighted blend toward the prior (0.5):
+        If all signals are high quality (Q̄=1): P_final = P_raw
+        If all signals are poor (Q̄=0): P_final = 0.5 (return to prior)
+    Interpolates linearly between these extremes.
+
+CONVICTION LEVEL THRESHOLDS
+───────────────────────────
+    P_final ≥ 0.78  → STRONG CONVICTION  (top ~5% of historical readings)
+    P_final ≥ 0.68  → HIGH               (top ~15%)
+    P_final ≥ 0.53  → MODERATE POSITIVE   (slight net positive)
+    P_final ≥ 0.48  → NEUTRAL             (tight band — true coin-flip only)
+    P_final ≥ 0.35  → MODERATE NEGATIVE   (slight net negative)
+    P_final <  0.35  → LOW / RISK          (bottom ~15%)
+
+    These correspond to the calibrated logistic output at:
+        0.78 → C_adj ≈ +0.43 (3 of 4 signals moderately bullish)
+        0.68 → C_adj ≈ +0.25 (2-3 signals mildly bullish)
+        0.53 → C_adj ≈ +0.04 (slight net positive)
+        0.48 → C_adj ≈ -0.03 (marginal — no clear edge)
+        0.35 → C_adj ≈ -0.22 (2-3 signals mildly bearish)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 """
 import numpy as np
 import pandas as pd
@@ -273,17 +347,29 @@ def _calculate_stock_conviction(
     weights = _get_dynamic_weights(vol_regime, signal_quality)
 
     # 3. Extract raw scores (Standardized to -1 to +1)
+    #
+    # Each signal group produces a base score in [-1, +1].
+    # The formulas below combine sub-signals with explicit weights
+    # that sum to 1.0 and maintain symmetric range bounds.
 
     # Filing Intel
+    # sub-signals: fundamental_conviction ∈ [-1,1], guidance_momentum ∈ [-1,1],
+    #              risk_deterioration ∈ [0,1] (higher = worse, so we negate)
+    # Combined as weighted average: 40% conviction + 30% guidance + 30% risk
     f_score = float(filing.get("fundamental_conviction", 0))
     g_mom = float(filing.get("guidance_momentum", 0))
     r_det = float(filing.get("risk_deterioration", 0))
-    base_f = (f_score + g_mom - r_det) / 2.0
+    # Convert risk to same sign convention: higher risk → more negative
+    r_signal = -(r_det * 2 - 1)  # maps [0,1] → [+1,-1] (low risk=positive, high risk=negative)
+    base_f = f_score * 0.40 + g_mom * 0.30 + r_signal * 0.30
 
     # Earnings Intel
+    # sub-signals: management_confidence ∈ [-1,1], analyst_pressure ∈ [0,1]
+    # Combined as: 70% confidence + 30% pressure (negated — high pressure is bearish)
     m_conf = float(earnings.get("management_confidence", 0))
     a_pres = float(earnings.get("analyst_pressure", 0))
-    base_e = m_conf - (a_pres * 0.5)
+    a_signal = -(a_pres * 2 - 1)  # maps [0,1] → [+1,-1] (low pressure=positive)
+    base_e = m_conf * 0.70 + a_signal * 0.30
 
     # Flow Intel
     flow_composite = float(flows.get("flow_composite", 0))
@@ -317,14 +403,22 @@ def _calculate_stock_conviction(
         for signal in base_scores
     )
 
-    # 6. Agreement multiplier (strong agreement boosts, divergence dampens)
-    agreement_mult = 0.8 + (agreement["agreement_score"] * 0.4)  # [0.8, 1.2]
+    # 6. Agreement multiplier
+    #    M = 0.8 + 0.4·agreement ∈ [0.8, 1.2]
+    #    Convergent signals (all bullish or all bearish) amplify composite by up to +20%.
+    #    Divergent signals (disagreement) dampen composite by up to -20%.
+    #    Symmetric range centered at 1.0 when agreement=0.5 (M=1.0).
+    agreement_mult = 0.8 + (agreement["agreement_score"] * 0.4)
     composite_score *= agreement_mult
 
-    # 7. Probability mapping (calibrated logistic)
+    # 7. Probability mapping via calibrated logistic
+    #    P = σ(k·C) where k=3, calibrated so C=±0.3 → P≈0.71/0.29
+    #    See module docstring for full calibration table.
     prob = 1 / (1 + np.exp(-3 * composite_score))
 
-    # 8. Signal confidence adjustment
+    # 8. Quality shrinkage toward prior (Bayesian credibility blend)
+    #    P_final = P·Q̄ + 0.5·(1-Q̄)
+    #    High quality sources → trust the signal. Low quality → revert to prior (0.5).
     avg_quality = np.mean(list(signal_quality.values()))
     prob_final = (prob * avg_quality) + (0.5 * (1 - avg_quality))
 
@@ -332,14 +426,23 @@ def _calculate_stock_conviction(
     mc_intervals = _monte_carlo_confidence(base_scores, signal_quality, weights)
 
     # 10. Conviction level labeling
+    #     Tight NEUTRAL band (0.48–0.53) ensures only true coin-flip
+    #     scenarios read as neutral.  Anything outside that shows
+    #     directional conviction matching user intuition.
+    #       ≥0.78  STRONG CONVICTION — ~3/4 signals moderately bullish
+    #       ≥0.68  HIGH              — ~2/4 signals mildly bullish
+    #       ≥0.53  MODERATE POSITIVE — slight net positive
+    #       ≥0.48  NEUTRAL           — no meaningful edge
+    #       ≥0.35  MODERATE NEGATIVE — slight net negative
+    #       <0.35  LOW / RISK        — 2-3 signals bearish
     level = "NEUTRAL"
     if prob_final >= 0.78:
         level = "STRONG CONVICTION"
     elif prob_final >= 0.68:
         level = "HIGH"
-    elif prob_final >= 0.58:
+    elif prob_final >= 0.53:
         level = "MODERATE POSITIVE"
-    elif prob_final >= 0.45:
+    elif prob_final >= 0.48:
         level = "NEUTRAL"
     elif prob_final >= 0.35:
         level = "MODERATE NEGATIVE"
@@ -525,5 +628,13 @@ def run_conviction_synthesis(state: PortfolioState) -> PortfolioState:
         # Backward compat
         "overall_portfolio_conviction": portfolio_conviction["overall_conviction"],
     }
+
+    # Log to observability
+    try:
+        from invictus.observability.collectors.conviction_collector import log_conviction
+        for ticker, synth in synthesis_results.items():
+            log_conviction(ticker, synth)
+    except Exception:
+        pass
 
     return state

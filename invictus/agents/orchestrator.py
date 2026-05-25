@@ -2,38 +2,46 @@
 Invictus — LangGraph Orchestrator
 Central workflow that coordinates all portfolio intelligence agents.
 
-Graph topology:
+Graph topology (7 stages, 15 nodes):
     load_portfolio
          |
-    ┌────┴─────────────────────┐
-    │  parallel risk branch    │
-    ├──────────────────────────┤
-    │  compute_risk            │
-    │  run_pca                 │
-    │  detect_vol_regime       │
-    │  run_stress_tests        │
-    │  compute_greeks          │
-    └────┬─────────────────────┘
+    ┌────┴─────────────────────────────┐
+    │  Stage 1: Portfolio Intelligence │  (fan-out, parallel)
+    ├──────────────────────────────────┤
+    │  compute_risk                    │
+    │  run_pca                         │
+    │  detect_vol_regime               │
+    │  run_stress_tests                │
+    │  compute_greeks                  │
+    │  attribute_pnl                   │
+    └────┬─────────────────────────────┘
+         |  (fan-in barrier)
+    ┌────┴─────────────────────────────┐
+    │  Stage 2: Conviction Intelligence│  (fan-out, parallel)
+    ├──────────────────────────────────┤
+    │  analyze_flows                   │
+    │  retrieve_10k_context            │
+    │  run_filing_intel                │
+    │  run_earnings_intel              │
+    └────┬─────────────────────────────┘
+         |  (fan-in barrier)
+    run_accumulation_model
          |
-    ┌────┴─────────────────────┐
-    │  parallel intel branch   │
-    ├──────────────────────────┤
-    │  analyze_flows           │
-    │  run_accumulation_model  │
-    │  retrieve_10k_context    │
-    └────┬─────────────────────┘
-         |
-    attribute_pnl
+    run_conviction_synthesis
          |
     generate_commentary
          |
     evaluate_commentary
-         |
-    produce_final_report
+
+Built on LangGraph StateGraph with fan-out/fan-in edges.
 """
-from typing import Any, Dict, Callable
+from typing import Any, Dict, List, Optional, Callable, Annotated
 from functools import wraps
+import operator
 import traceback
+
+from langgraph.graph import StateGraph, START, END
+from typing_extensions import TypedDict
 
 from invictus.agents.graph_state import PortfolioState
 
@@ -183,45 +191,163 @@ def run_conviction_synthesis_node(state: PortfolioState) -> PortfolioState:
     return run_conviction_synthesis(state)
 
 
-@register_node("produce_final_report")
-def produce_final_report_node(state: PortfolioState) -> PortfolioState:
-    """Assemble the final report — implemented in Step 15."""
-    # This will be a report assembly step, not a separate agent module
-    return state
+# ── LangGraph State Schema ─────────────────────────────────────────────
+# TypedDict state for LangGraph. List fields use operator.add reducer
+# so fan-out branches accumulate entries instead of overwriting.
+
+class PipelineState(TypedDict, total=False):
+    """State dict flowing through the LangGraph StateGraph."""
+    # Portfolio data
+    holdings: Any
+    prices: Any
+    returns: Any
+    weights: Optional[Dict[str, float]]
+    total_value: Optional[float]
+    total_daily_pnl: Optional[float]
+    daily_return_pct: Optional[float]
+    total_cost: Optional[float]
+    total_unrealized_pnl: Optional[float]
+    unrealized_pnl_pct: Optional[float]
+    summary: Any
+    # Agent outputs
+    risk_metrics: Optional[Dict[str, Any]]
+    ticker_risk: Any
+    correlation_matrix: Any
+    pca_results: Optional[Dict[str, Any]]
+    vol_regime: Optional[Dict[str, Any]]
+    stress_results: Optional[Dict[str, Any]]
+    greeks_results: Optional[Dict[str, Any]]
+    flow_signals: Optional[Dict[str, Any]]
+    ml_predictions: Optional[Dict[str, Any]]
+    rag_insights: Optional[Dict[str, Any]]
+    pnl_attribution: Optional[Dict[str, Any]]
+    commentary: Optional[Dict[str, Any]]
+    eval_results: Optional[Dict[str, Any]]
+    selected_horizon: str
+    filing_intel: Optional[Dict[str, Any]]
+    earnings_intel: Optional[Dict[str, Any]]
+    conviction_synthesis: Optional[Dict[str, Any]]
+    # Orchestration tracking — use add reducer for fan-out merge
+    errors: Annotated[List[str], operator.add]
+    completed_nodes: Annotated[List[str], operator.add]
+    current_node: Optional[str]
 
 
-# ── Graph Builder ──────────────────────────────────────────────────────
+def _wrap_node(node_fn: Callable) -> Callable:
+    """Wrap a registered node function for LangGraph state dict protocol.
+
+    LangGraph nodes receive and return dicts. This wrapper hydrates a
+    PortfolioState, runs the agent, and returns a partial state update.
+    List fields (errors, completed_nodes) return only NEW entries so the
+    operator.add reducer concatenates correctly during fan-out merges.
+    """
+    def wrapper(state: dict) -> dict:
+        # Hydrate PortfolioState from state dict
+        fields = {}
+        for k in PortfolioState.model_fields:
+            if k in state and state[k] is not None:
+                fields[k] = state[k]
+        pstate = PortfolioState(**fields)
+
+        prev_completed_len = len(pstate.completed_nodes)
+        prev_errors_len = len(pstate.errors)
+
+        # Run the actual agent (with error handling from register_node)
+        pstate = node_fn(pstate)
+
+        # Build return dict — all scalar fields + list deltas
+        result: Dict[str, Any] = {}
+        for k in PortfolioState.model_fields:
+            if k == "completed_nodes":
+                result[k] = pstate.completed_nodes[prev_completed_len:]
+            elif k == "errors":
+                result[k] = pstate.errors[prev_errors_len:]
+            else:
+                result[k] = getattr(pstate, k)
+        return result
+    return wrapper
+
+
+# ── Graph Topology ─────────────────────────────────────────────────────
+# Defines the DAG structure: fan-out parallel stages + sequential tail.
+
+# Stage groupings for topology queries
+STAGES = [
+    ["load_portfolio"],
+    ["compute_risk", "run_pca", "detect_vol_regime", "run_stress_tests", "compute_greeks", "attribute_pnl"],
+    ["analyze_flows", "retrieve_10k_context", "run_filing_intel", "run_earnings_intel"],
+    ["run_accumulation_model"],
+    ["run_conviction_synthesis"],
+    ["generate_commentary"],
+    ["evaluate_commentary"],
+]
+
+PI_NODES = STAGES[1]   # Portfolio Intelligence — parallel fan-out
+CI_NODES = STAGES[2]   # Conviction Intelligence — parallel fan-out
+SEQ_TAIL = ["run_accumulation_model", "run_conviction_synthesis",
+            "generate_commentary", "evaluate_commentary"]
+
+
+def _build_graph() -> StateGraph:
+    """Build the LangGraph StateGraph with fan-out/fan-in edges."""
+    graph = StateGraph(PipelineState)
+
+    # ── Add all agent nodes ──
+    for name, fn in _node_registry.items():
+        graph.add_node(name, _wrap_node(fn))
+
+    # ── Barrier (passthrough) nodes for fan-in synchronization ──
+    def _passthrough(state: dict) -> dict:
+        return {}
+
+    graph.add_node("pi_barrier", _passthrough)
+    graph.add_node("ci_barrier", _passthrough)
+
+    # ── Wire edges ──
+    # Entry → load
+    graph.add_edge(START, "load_portfolio")
+
+    # Load → fan-out to Portfolio Intelligence (parallel)
+    for node in PI_NODES:
+        graph.add_edge("load_portfolio", node)
+
+    # PI fan-in → barrier
+    for node in PI_NODES:
+        graph.add_edge(node, "pi_barrier")
+
+    # Barrier → fan-out to Conviction Intelligence (parallel)
+    for node in CI_NODES:
+        graph.add_edge("pi_barrier", node)
+
+    # CI fan-in → barrier
+    for node in CI_NODES:
+        graph.add_edge(node, "ci_barrier")
+
+    # Sequential tail: ML → Synthesis → Commentary → Eval → END
+    graph.add_edge("ci_barrier", "run_accumulation_model")
+    graph.add_edge("run_accumulation_model", "run_conviction_synthesis")
+    graph.add_edge("run_conviction_synthesis", "generate_commentary")
+    graph.add_edge("generate_commentary", "evaluate_commentary")
+    graph.add_edge("evaluate_commentary", END)
+
+    return graph
+
+
+# ── Graph Executor ─────────────────────────────────────────────────────
 
 class InvictusGraph:
     """
-    Simple sequential/parallel graph executor.
-    Can be upgraded to full LangGraph StateGraph when langgraph is available.
+    LangGraph-backed executor with a .run() convenience API.
 
-    This gives us the orchestration pattern now; the LangGraph wiring
-    is a drop-in replacement once the agents are built.
+    Compiles the StateGraph and exposes .run(state, progress_callback)
+    matching the interface app.py expects. Also provides topology
+    introspection for the Dev Console architecture tab.
     """
 
     def __init__(self):
-        self.stages = [
-            # Stage 0: Validate portfolio
-            ["load_portfolio"],
-            # Stage 1: Risk analytics (parallel)
-            ["compute_risk", "run_pca", "detect_vol_regime", "run_stress_tests", "compute_greeks"],
-            # Stage 2: Intelligence gathering — flows, filings, earnings (parallel)
-            ["analyze_flows", "retrieve_10k_context", "run_filing_intel", "run_earnings_intel"],
-            # Stage 3: ML model (depends on flows + filing + earnings for features)
-            ["run_accumulation_model"],
-            # Stage 4: Conviction Synthesis (depends on all intelligence)
-            ["run_conviction_synthesis"],
-            # Stage 5: Attribution
-            ["attribute_pnl"],
-            # Stage 6: Commentary
-            ["generate_commentary"],
-            # Stage 7: Evaluation
-            ["evaluate_commentary"],
-            # Stage 8: Final report
-            ["produce_final_report"],
-        ]
+        self._graph = _build_graph()
+        self._compiled = self._graph.compile()
+        self.stages = STAGES
 
     def run(
         self,
@@ -230,32 +356,58 @@ class InvictusGraph:
         only_nodes: list = None,
         progress_callback: Callable = None,
     ) -> PortfolioState:
-        """
-        Execute the graph sequentially (stages run in order).
-        Within each stage, nodes run sequentially for simplicity.
+        """Execute the LangGraph pipeline.
 
-        Args:
-            state: The portfolio state to process
-            skip_nodes: List of node names to skip
-            only_nodes: If set, only run these specific nodes
-            progress_callback: Optional callback(node_name, stage_idx, total_stages)
+        Invokes the compiled StateGraph. Progress callbacks fire by
+        streaming node start events from the graph execution.
         """
         skip_nodes = skip_nodes or []
+
+        # Convert PortfolioState → dict for LangGraph
+        init_state: Dict[str, Any] = {}
+        for k in PortfolioState.model_fields:
+            init_state[k] = getattr(state, k)
+        # Ensure list fields are initialized for the add reducer
+        init_state.setdefault("errors", [])
+        init_state.setdefault("completed_nodes", [])
+
+        if progress_callback or skip_nodes or only_nodes:
+            # Use step-by-step execution for progress reporting / filtering
+            return self._run_stepwise(state, skip_nodes, only_nodes, progress_callback)
+
+        # Fast path: invoke the full compiled graph
+        result = self._compiled.invoke(init_state)
+
+        # Merge result back into PortfolioState
+        for k in PortfolioState.model_fields:
+            if k in result and result[k] is not None:
+                setattr(state, k, result[k])
+        return state
+
+    def _run_stepwise(
+        self,
+        state: PortfolioState,
+        skip_nodes: list,
+        only_nodes: list,
+        progress_callback: Callable,
+    ) -> PortfolioState:
+        """Sequential stage-by-stage execution with progress callbacks.
+
+        Falls back to stage-ordered execution when we need progress
+        reporting or node filtering (skip/only).
+        """
         total_stages = len(self.stages)
 
         for stage_idx, stage_nodes in enumerate(self.stages):
             for node_name in stage_nodes:
-                # Skip logic
                 if node_name in skip_nodes:
                     continue
                 if only_nodes and node_name not in only_nodes:
                     continue
 
-                # Progress reporting
                 if progress_callback:
                     progress_callback(node_name, stage_idx, total_stages)
 
-                # Execute node
                 node_fn = get_node(node_name)
                 state = node_fn(state)
 
@@ -276,61 +428,17 @@ class InvictusGraph:
             "total_nodes": sum(len(s) for s in self.stages),
         }
 
-
-# ── LangGraph Native Builder (used when langgraph is installed) ────────
-
-def build_langgraph():
-    """
-    Build a native LangGraph StateGraph.
-    This is the production-grade version using langgraph's graph primitives.
-    Falls back to InvictusGraph if langgraph is not installed.
-    """
-    try:
-        from langgraph.graph import StateGraph, END
-
-        # Define the graph with our state schema
-        workflow = StateGraph(PortfolioState)
-
-        # Add all nodes
-        for name, fn in _node_registry.items():
-            workflow.add_node(name, fn)
-
-        # Define edges
-        workflow.set_entry_point("load_portfolio")
-
-        # After load → risk branch
-        risk_nodes = ["compute_risk", "run_pca", "detect_vol_regime", "run_stress_tests", "compute_greeks"]
-        workflow.add_edge("load_portfolio", "compute_risk")
-        workflow.add_edge("load_portfolio", "run_pca")
-        workflow.add_edge("load_portfolio", "detect_vol_regime")
-        workflow.add_edge("load_portfolio", "run_stress_tests")
-        workflow.add_edge("load_portfolio", "compute_greeks")
-
-        # After risk → intel branch
-        intel_nodes = ["analyze_flows", "run_accumulation_model", "retrieve_10k_context"]
-        for risk_node in risk_nodes:
-            for intel_node in intel_nodes:
-                workflow.add_edge(risk_node, intel_node)
-
-        # After intel → attribution
-        for intel_node in intel_nodes:
-            workflow.add_edge(intel_node, "attribute_pnl")
-
-        # Sequential tail
-        workflow.add_edge("attribute_pnl", "generate_commentary")
-        workflow.add_edge("generate_commentary", "evaluate_commentary")
-        workflow.add_edge("evaluate_commentary", "produce_final_report")
-        workflow.add_edge("produce_final_report", END)
-
-        return workflow.compile()
-
-    except ImportError:
-        # Fallback to our simple executor
-        return InvictusGraph()
+    def get_graph(self) -> StateGraph:
+        """Return the underlying StateGraph for inspection."""
+        return self._graph
 
 
 # ── Convenience ────────────────────────────────────────────────────────
 
 def create_graph() -> InvictusGraph:
-    """Create an InvictusGraph instance."""
+    """Create the LangGraph-backed pipeline executor.
+
+    Returns an InvictusGraph instance wrapping a compiled LangGraph
+    StateGraph with fan-out/fan-in edges for parallel stages.
+    """
     return InvictusGraph()

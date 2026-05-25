@@ -3,6 +3,7 @@ Invictus Equity Portfolio Intelligence Platform — Configuration
 """
 import os
 from pathlib import Path
+from dotenv import load_dotenv
 
 # ── Paths ──────────────────────────────────────────────────────────────
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -11,8 +12,13 @@ STATIC_DIR = PROJECT_ROOT / "invictus" / "static"
 RAG_DIR = PROJECT_ROOT / "invictus" / "rag"
 MODELS_DIR = PROJECT_ROOT / "invictus" / "models"
 
+# Load .env BEFORE reading any keys — guarantees keys are available
+# regardless of which module imports config first.
+load_dotenv(PROJECT_ROOT / ".env")
+
 # ── API Keys (set via environment or .env) ─────────────────────────────
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 FINNHUB_API_KEY = os.getenv("FINNHUB_API_KEY", "")
 POLYGON_API_KEY = os.getenv("POLYGON_API_KEY", "")
 FMP_API_KEY = os.getenv("FMP_API_KEY", "")
@@ -55,7 +61,11 @@ INSTITUTIONAL_CHANGE_THRESHOLD = 0.0075  # 0.75%
 MUTUAL_FUND_CHANGE_THRESHOLD = 0.0075
 
 # ── LLM Settings ───────────────────────────────────────────────────────
-LLM_MODEL = "gpt-4o-mini"
+# Provider priority: Gemini (if key present) → OpenAI → Dictionary fallback
+LLM_PROVIDER = "gemini" if os.getenv("GEMINI_API_KEY", "") else "openai"
+LLM_MODEL_OPENAI = "gpt-4o-mini"
+LLM_MODEL_GEMINI = "gemini-2.0-flash"
+LLM_MODEL = LLM_MODEL_GEMINI if LLM_PROVIDER == "gemini" else LLM_MODEL_OPENAI
 LLM_TEMPERATURE = 0.3
 LLM_MAX_TOKENS = 2000
 

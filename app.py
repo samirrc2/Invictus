@@ -1,37 +1,38 @@
 """
 Invictus Equity Portfolio Intelligence Platform
-Main Streamlit Application
+Main Streamlit Application — Thin routing shell.
+
+Page content lives in invictus/pages/.
+Design system lives in invictus/design/.
 """
 import streamlit as st
 import pandas as pd
-import numpy as np
-import plotly.express as px
-import plotly.graph_objects as go
-import plotly.io as pio
-import time
-import io
-import base64
 from pathlib import Path
-from typing import Dict, Any, List, Optional
 from dotenv import load_dotenv
+import plotly.io as pio
 
-# ── Load Analytics ────────────────────────────────────────────────────
-from invictus.analytics.tracker import (
-    create_session as _analytics_create_session,
-    track_click as _analytics_track_click,
-    track_page_view as _analytics_track_page_view,
-    get_summary_stats as _analytics_get_summary_stats,
-    get_daily_traffic as _analytics_get_daily_traffic,
-    get_page_popularity as _analytics_get_page_popularity,
+load_dotenv()  # Must run BEFORE any invictus.* imports (they read env vars at import time)
+
+# ── Design System ─────────────────────────────────────────────────────
+from invictus.design import (
+    inject_styles, render_sidebar_brand, render_footer,
+    render_metric_card, fmt_currency,
+    BRAND_BLUE, SUCCESS_GREEN, DANGER_RED, SLATE_500,
 )
 
-# Load Environment Variables
-load_dotenv()
+# ── Analytics ─────────────────────────────────────────────────────────
+from invictus.analytics.tracker import (
+    create_session as _analytics_create_session,
+)
 
-# Force SVG renderer
+# ── Page Modules ──────────────────────────────────────────────────────
+from invictus.pages import portfolio as portfolio_analytics, hypo_simulator, dev_analytics
+from invictus.pages import conviction
+from invictus.pages import landing
+
 pio.templates.default = "plotly"
 
-# Page Config
+# ── Page Config ───────────────────────────────────────────────────────
 st.set_page_config(
     page_title="Invictus Portfolio Intelligence",
     page_icon="https://raw.githubusercontent.com/favicon.ico",
@@ -39,206 +40,9 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-st.markdown("""
-<style>
-    /* ── Institutional Design Tokens ── */
-    :root {
-        --brand-navy: #1e293b;
-        --brand-blue: #1d4ed8;
-        --brand-blue-hover: #2563eb;
-        --brand-blue-light: #60a5fa;
-        --brand-silver: #cbd5e1;
-        --brand-silver-bright: #f8fafc;
-        --capsule-bg: #eef2ff;
-        --capsule-text: #1e3a8a;
-        --capsule-muted: #64748b;
-        --success-green: #10b981;
-        --danger-red: #ef4444;
-    }
+inject_styles()
 
-    /* ── Global App Reset ── */
-    html, body, .stApp { 
-        background-color: #ffffff !important; 
-        color: #0f172a !important; 
-        font-family: 'Inter', sans-serif !important; 
-    }
-
-    /* ── Sidebar (Midnight Command Center) ── */
-    [data-testid='stSidebar'], 
-    [data-testid='stSidebarContent'],
-    [data-testid='stSidebarUserContent'] {
-        background-color: #020617 !important;
-        border-right: 1px solid #1e293b;
-    }
-    [data-testid='stSidebarUserContent'] { padding-top: 0 !important; margin-top: -45px !important; }
-
-    /* Sidebar Brand Block */
-    .sidebar-brand {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        text-align: center;
-        padding: 0 0 10px 0;
-        border-bottom: 1px solid rgba(255,255,255,0.1);
-        margin: 0 0 12px 0;
-    }
-    .sidebar-brand img {
-        height: 70px !important;
-        width: auto;
-        margin-bottom: 4px;
-        filter: drop-shadow(0 0 10px rgba(29,78,216,0.3));
-    }
-    .sidebar-brand-name {
-        color: var(--brand-silver) !important;
-        font-size: 22px !important;
-        font-weight: 900 !important;
-        letter-spacing: 4px !important;
-        text-transform: uppercase !important;
-        line-height: 1.1;
-    }
-    .sidebar-brand-sub {
-        color: #64748b !important;
-        font-size: 11px !important;
-        font-weight: 800 !important;
-        letter-spacing: 1px !important;
-        text-transform: uppercase !important;
-    }
-
-    /* ── SURGICAL CAPSULE OVERRIDES ── */
-    [data-testid='stSidebar'] [data-testid='stVerticalBlockBorderWrapper'],
-    .agent-panel {
-        background-color: var(--capsule-bg) !important;
-        border: none !important;
-        border-radius: 8px !important;
-        padding: 8px 12px !important;
-        margin-bottom: 8px !important;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.1) !important;
-    }
-    
-    .agent-panel-title {
-        color: var(--capsule-muted) !important;
-        font-weight: 700 !important;
-        font-size: 10px !important;
-        text-transform: uppercase !important;
-        letter-spacing: 1px !important;
-        margin-bottom: 8px !important;
-        border-bottom: 1px solid rgba(0,0,0,0.05) !important;
-        padding-bottom: 4px !important;
-        display: block !important;
-    }
-
-    [data-testid='stSidebar'] [data-testid='stVerticalBlockBorderWrapper'] label,
-    [data-testid='stSidebar'] [data-testid='stVerticalBlockBorderWrapper'] p,
-    [data-testid='stSidebar'] [data-testid='stVerticalBlockBorderWrapper'] span,
-    .agent-panel label, .agent-panel p, .agent-panel span {
-        color: var(--capsule-text) !important;
-        font-size: 11px !important;
-        font-weight: 600 !important;
-    }
-
-    .agent-row {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        width: 100%;
-        padding: 3px 0;
-        font-size: 11px !important;
-    }
-    
-    .snapshot-value { color: var(--capsule-text) !important; font-size: 13px !important; font-weight: 800 !important; }
-
-    /* ── BUTTON COMPACTION (32px) ── */
-    [data-testid='stSidebar'] .stButton > button {
-        background: var(--capsule-bg) !important;
-        color: var(--capsule-text) !important;
-        border: 1px solid rgba(29, 78, 216, 0.15) !important;
-        font-weight: 700 !important;
-        font-size: 11px !important;
-        text-transform: uppercase !important;
-        letter-spacing: 1px !important;
-        height: 32px !important;
-        line-height: 32px !important;
-        padding: 0 16px !important;
-        margin-top: 8px !important;
-        border-radius: 6px !important;
-        width: 100% !important;
-    }
-
-    .agent-dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; margin-right: 8px; flex-shrink: 0; }
-    .agent-dot.active { background: #10b981; box-shadow: 0 0 6px #10b981; animation: heartbeat 2s ease-in-out infinite; }
-    .agent-dot.inactive { background: #cbd5e1; }
-    @keyframes heartbeat { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.3); opacity: 0.6; } }
-
-    div[data-testid='stRadio'] label[data-baseweb='radio'] div:first-child { border-color: var(--brand-blue) !important; }
-    div[data-testid='stRadio'] label[data-baseweb='radio'] [aria-checked='true'] + div { background-color: var(--brand-blue) !important; }
-    .stTabs [aria-selected='true'] { color: var(--brand-blue) !important; border-bottom: 3px solid var(--brand-blue) !important; }
-
-    /* Main Canvas Section Headers */
-    .section-header {
-        font-size: 13px !important;
-        font-weight: 800 !important;
-        color: var(--brand-blue) !important;
-        background-color: var(--brand-silver-bright) !important;
-        border-left: 5px solid var(--brand-blue) !important;
-        padding: 12px 20px !important;
-        margin: 24px 0 20px 0 !important;
-        border-radius: 0 8px 8px 0 !important;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-    }
-    
-    /* Anti-Dimming */
-    [data-stale="true"] { opacity: 1 !important; filter: none !important; }
-
-    /* Fixed Bottom Footer Bar */
-    .inv-footer {
-        position: fixed;
-        bottom: 0; left: 0; right: 0;
-        z-index: 999999;
-        height: 28px;
-        background: var(--brand-silver-bright) !important;
-        border-top: 1px solid var(--brand-blue) !important;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 16px;
-        font-size: 8px;
-        color: var(--capsule-muted) !important;
-        text-transform: uppercase;
-        font-weight: 700 !important;
-    }
-    .inv-footer span { color: var(--capsule-muted) !important; }
-    .inv-footer .sep { color: var(--brand-blue) !important; font-weight: 900; }
-    
-    /* ── Commentary Box ── */
-    .commentary-box {
-        border-left: 3px solid var(--brand-blue);
-        padding: 16px 20px;
-        background: var(--brand-silver-bright);
-        border-radius: 6px;
-        color: #0f172a;
-        font-size: 14px;
-        line-height: 1.8;
-        white-space: pre-wrap;
-    }
-
-    /* ── Main Metrics ── */
-    .metric-card {
-        background: #ffffff !important;
-        border: 1px solid var(--brand-silver-bright) !important;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
-        border-radius: 12px !important;
-        padding: 16px 20px !important;
-        min-height: 120px !important;
-    }
-    .metric-label { color: #64748b !important; font-size: 11px !important; font-weight: 700 !important; text-transform: uppercase; }
-    .metric-value { color: #0f172a !important; font-weight: 800 !important; font-size: 22px !important; }
-    .pos { color: var(--success-green) !important; }
-    .neg { color: var(--danger-red) !important; }
-</style>
-""", unsafe_allow_html=True)
-
-# ── Ensure all state variables are present ────────────────────────────
+# ── Session State ─────────────────────────────────────────────────────
 for key, default in {
     "portfolio_loaded": False, "portfolio_state": None,
     "risk_state": None, "pca_state": None, "vol_regime_state": None,
@@ -247,7 +51,14 @@ for key, default in {
     "commentary_state": None, "eval_state": None, "filing_intel": None,
     "earnings_intel": None, "conviction_synthesis": None,
     "live_feed": True, "last_refresh_time": 0,
-    "dev_authenticated": False, "_analytics_sid": None, "_last_tracked_page": None
+    "dev_authenticated": False, "_analytics_sid": None, "_last_tracked_page": None,
+    "pi_results": None, "pi_selected_tickers": [],
+    "hypo_results": None,
+    "agent_status": {},
+    "pipeline_running": False,
+    "nav_primary": "Portfolio Intelligence",
+    "nav_sub": "Overview",
+    "show_landing": True,
 }.items():
     if key not in st.session_state:
         st.session_state[key] = default
@@ -255,369 +66,532 @@ for key, default in {
 if st.session_state._analytics_sid is None:
     st.session_state._analytics_sid = _analytics_create_session()
 
-# ── UI Helpers ────────────────────────────────────────────────────────
-def render_metric_card(label, value, delta_str=None, delta_val=None):
-    status_class = "pos" if delta_val and delta_val > 0 else ("neg" if delta_val and delta_val < 0 else "")
-    delta_html = f'<span class="metric-delta {status_class}" style="font-size:13px; font-weight:700; margin-left:8px;">{delta_str}</span>' if delta_str else ""
-    st.markdown(
-        f'<div class="metric-card">'
-        f'<div class="metric-label">{label.upper()}</div>'
-        f'<div style="display:flex; align-items:baseline;">'
-        f'<span class="metric-value">{value}</span>'
-        f'{delta_html}'
-        f'</div>'
-        f'</div>',
-        unsafe_allow_html=True
-    )
+# ── Agent Display Mapping ─────────────────────────────────────────────
+_AGENT_DISPLAY = {
+    "load_portfolio": "Load Portfolio",
+    "compute_risk": "Risk Analytics",
+    "run_pca": "PCA Factor",
+    "detect_vol_regime": "Vol Regime",
+    "run_stress_tests": "Stress Test",
+    "compute_greeks": "Greeks",
+    "analyze_flows": "Inst. Flows",
+    "retrieve_10k_context": "10-K RAG",
+    "run_filing_intel": "Filing Intel",
+    "run_earnings_intel": "Earnings Intel",
+    "run_accumulation_model": "ML Engine",
+    "run_conviction_synthesis": "Conviction",
+    "attribute_pnl": "P&L Attribution",
+    "generate_commentary": "AI Commentary",
+    "evaluate_commentary": "Eval Harness",
+}
 
-def apply_invictus_layout(fig, height=450, hovermode="closest", showlegend=False, title=None, margin=None):
-    fig.update_layout(
-        template="plotly_white",
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
-        font_family="Inter, sans-serif",
-        font_color="#0f172a",
-        hovermode=hovermode,
-        height=height,
-        title=title,
-        showlegend=showlegend,
-        margin=margin or dict(t=20, b=20, l=20, r=20),
-        xaxis=dict(showgrid=True, gridcolor="#f1f5f9", linecolor="#e2e8f0", tickfont=dict(size=11, color="#64748b")),
-        yaxis=dict(showgrid=True, gridcolor="#f1f5f9", linecolor="#e2e8f0", tickfont=dict(size=11, color="#64748b")),
-        legend=dict(font=dict(size=11, color="#64748b"), bgcolor="rgba(255,255,255,0.9)", bordercolor="#e2e8f0", borderwidth=1)
-    )
-    return fig
+# ── Routes ────────────────────────────────────────────────────────────
+_ROUTES = {
+    "Portfolio Intelligence": [
+        "Overview", "Risk Analytics", "Factor Decomposition",
+        "Volatility Regimes", "Stress Scenarios", "P&L Attribution",
+    ],
+    "Conviction Intelligence": [
+        "Conviction Engine", "Capital Flows",
+        "Management Outlook", "Transcript Analysis",
+    ],
+    "Allocation Engine": [
+        "Run Allocation Simulation",
+    ],
+}
+if st.query_params.get("dev") == "invictus":
+    _ROUTES = {"Dev Analytics": [
+        "Architecture", "Agent Performance", "LLM Quality", "ML Monitoring",
+        "Conviction Analytics", "Conviction Intelligence", "Session Analytics",
+        "Data Health", "Cost Analytics", "Eval Metrics", "Backtest",
+    ]}
 
-def fmt_currency(val, decimals=0):
-    return f"${val:,.{decimals}f}" if val >= 0 else f"-${abs(val):,.{decimals}f}"
+# ── Agent Status Helper ───────────────────────────────────────────────
+_SIDEBAR_AGENTS = [
+    "Risk Analytics", "PCA Factor", "Vol Regime", "Stress Test",
+    "Greeks", "Inst. Flows", "10-K RAG", "Filing Intel", "Earnings Intel",
+    "ML Engine", "Conviction", "P&L Attribution", "AI Commentary", "Eval Harness",
+]
+_RESULT_KEYS = {
+    "Risk Analytics": "risk_state", "PCA Factor": "pca_state",
+    "Vol Regime": "vol_regime_state", "Stress Test": "stress_state",
+    "Greeks": "greeks_state", "Inst. Flows": "flow_signals",
+    "10-K RAG": "rag_state", "Filing Intel": "filing_intel",
+    "Earnings Intel": "earnings_intel",
+    "ML Engine": "ml_state", "Conviction": "conviction_synthesis",
+    "P&L Attribution": "pnl_state", "AI Commentary": "commentary_state",
+    "Eval Harness": "eval_state",
+}
 
-def render_football_field(ticker, details, prob):
-    signals = [
-        {"Signal": "Fundamentals", "Score": float(details.get("fundamentals", {}).get("score", 0))},
-        {"Signal": "Technical Prob", "Score": (float(details.get("ml_accumulation", {}).get("score", 0)) - 0.5) * 2},
-        {"Signal": "Inst. Context", "Score": float(details.get("institutional_flows", {}).get("score", 0))},
-        {"Signal": "Risk Env.", "Score": -float(details.get("risk_environment", {}).get("score", 0))},
-        {"Signal": "Analyst Pressure", "Score": -float(details.get("analyst_pressure", {}).get("score", 0))},
-        {"Signal": "Mgmt Tone", "Score": float(details.get("management_tone", {}).get("score", 0))},
-    ]
-    df = pd.DataFrame(signals)
-    fig = go.Figure(go.Bar(x=df["Score"], y=df["Signal"], orientation="h", marker=dict(color=["#ef4444" if v < 0 else "#10b981" for v in df["Score"]])))
-    target = (prob - 0.5) * 2
-    fig.add_vline(x=target, line_width=3, line_dash="dash", line_color="#1d4ed8")
-    apply_invictus_layout(fig, height=350)
-    fig.update_layout(xaxis=dict(range=[-1.1, 1.1], tickformat=".1f"))
-    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+def _agent_status(label):
+    for node_name, display in _AGENT_DISPLAY.items():
+        if display == label:
+            s = st.session_state.agent_status.get(node_name)
+            if s:
+                return s
+    sk = _RESULT_KEYS.get(label)
+    if sk and st.session_state.get(sk) is not None:
+        return "done"
+    return "idle"
 
-# ── Sidebar ──
+# ══════════════════════════════════════════════════════════════════════
+# SIDEBAR — Brand, Navigation, Portfolio Upload, Snapshot
+# ══════════════════════════════════════════════════════════════════════
 logo_path = Path(__file__).parent / "invictus" / "static" / "logo.png"
-_logo_html = ""
-if logo_path.exists():
-    with open(logo_path, "rb") as f:
-        logo_b64 = base64.b64encode(f.read()).decode()
-    _logo_html = f'<img src="data:image/png;base64,{logo_b64}" alt="Invictus">'
 
 with st.sidebar:
-    st.markdown(f'<div class="sidebar-brand">{_logo_html}<div class="sidebar-brand-name">INVICTUS</div><div class="sidebar-brand-sub">Equity Portfolio Intelligence</div></div>', unsafe_allow_html=True)
-    
-    st.markdown("### Portfolio Input")
-    upload_method = st.radio("Load portfolio from:", ["Default Portfolio", "Upload CSV"], index=0, label_visibility="collapsed")
-    
-    uploaded_file = None
-    manual_mapping = None
-    if upload_method == "Upload CSV":
-        uploaded_file = st.file_uploader("Upload CSV", type=["csv"])
-        if uploaded_file:
-            from invictus.data.smart_loader import analyze_csv_columns
-            detected, confidence, all_cols = analyze_csv_columns(uploaded_file.getvalue().decode("utf-8"))
-            with st.expander("Verify Data Mapping", expanded=(confidence < 0.9)):
-                m_ticker = st.selectbox("Ticker", all_cols, index=all_cols.index(detected["Ticker"]) if detected["Ticker"] in all_cols else 0)
-                m_shares = st.selectbox("Shares", all_cols, index=all_cols.index(detected["Shares"]) if detected["Shares"] in all_cols else 0)
-                m_cost = st.selectbox("Cost Basis", ["None"] + all_cols, index=(all_cols.index(detected["CostBasis"])+1) if detected["CostBasis"] in all_cols else 0)
-                manual_mapping = {"Ticker": m_ticker, "Shares": m_shares, "CostBasis": m_cost if m_cost != "None" else None}
+    render_sidebar_brand(logo_path)
 
-    load_btn = st.button("Load Portfolio", use_container_width=True, type="primary")
-
-    # Agents Panel
-    agents = {
-        "Risk Analytics": st.session_state.risk_state is not None,
-        "PCA Factor": st.session_state.pca_state is not None,
-        "Vol Regime": st.session_state.vol_regime_state is not None,
-        "Stress Test": st.session_state.stress_state is not None,
-        "Greeks": st.session_state.greeks_state is not None,
-        "Inst. Flows": st.session_state.flow_signals is not None,
-        "Filing Intel": st.session_state.filing_intel is not None,
-        "Earnings Intel": st.session_state.earnings_intel is not None,
-        "ML Engine": st.session_state.ml_state is not None,
-        "Conviction": st.session_state.conviction_synthesis is not None,
-    }
-    active_count = sum(agents.values())
-    agent_rows = "".join([f'<div class="agent-row"><span><div class="agent-dot {"active" if v else "inactive"}"></div>{k}</span><span style="font-size:9px;opacity:0.6;">{"LIVE" if v else "IDLE"}</span></div>' for k, v in agents.items()])
-    st.markdown(f'<div class="agent-panel"><div class="agent-panel-title">Agents <span class="agent-panel-count">{active_count}/{len(agents)}</span></div>{agent_rows}</div>', unsafe_allow_html=True)
-
+    # ── Snapshot (always visible, -- when no portfolio) ────────
     if st.session_state.portfolio_loaded:
         ps = st.session_state.portfolio_state
-        pnl_color = "#10b981" if ps["total_daily_pnl"] >= 0 else "#ef4444"
-        st.markdown(f'<div class="agent-panel"><div class="agent-panel-title">Snapshot</div><div class="agent-row"><span>Net Worth</span><span class="snapshot-value">${ps["total_value"]:,.0f}</span></div><div class="agent-row"><span>Daily P&L</span><span style="color:{pnl_color};font-weight:700;">{ps["total_daily_pnl"]:,.0f}</span></div><div class="agent-row"><span>Positions</span><span style="font-weight:700;">{len(ps["summary"])}</span></div></div>', unsafe_allow_html=True)
+        nw_val = f'${ps["total_value"]:,.2f}'
+        day_chg = ps["total_daily_pnl"]
+        day_pct = ps.get("daily_return_pct", 0)
+        day_sign = "+" if day_chg >= 0 else ""
+        day_val = f'{day_sign}${abs(day_chg):,.2f} ({day_sign}{day_pct:.2f}%)'
+        day_dot = "#10b981" if day_chg >= 0 else "#ef4444"
+        unr_pnl = ps["total_unrealized_pnl"]
+        unr_pct = ps.get("unrealized_pnl_pct", 0)
+        unr_sign = "+" if unr_pnl >= 0 else ""
+        unr_val = f'{unr_sign}${abs(unr_pnl):,.2f} ({unr_sign}{unr_pct:.2f}%)'
+        unr_dot = "#10b981" if unr_pnl >= 0 else "#ef4444"
+    else:
+        nw_val = "--"
+        day_val = "--"
+        day_dot = "#cbd5e1"
+        unr_val = "--"
+        unr_dot = "#cbd5e1"
 
-# ── Tab Navigation ──
-_tab_labels = ["Overview", "Portfolio Risk", "Predictive Intelligence", "Full Report"]
-if st.query_params.get("dev") == "invictus": _tab_labels.append("Dev Console")
-_tabs = st.tabs(_tab_labels)
-_tab_contexts = {label: ctx for label, ctx in zip(_tab_labels, _tabs)}
+    st.markdown(
+        f'<div style="padding:14px 12px 12px 12px;border-bottom:1px solid #e2e8f0;margin-bottom:8px;">'
+        f'<div style="font-size:10px;font-weight:800;color:#94a3b8;letter-spacing:0.1em;'
+        f'text-transform:uppercase;margin-bottom:6px;">Portfolio Holdings</div>'
+        f'<div style="font-size:22px;font-weight:800;color:#0f172a;'
+        f'font-variant-numeric:tabular-nums;letter-spacing:-0.01em;">{nw_val}</div>'
+        f'<div style="margin-top:10px;">'
+        f'<div style="display:flex;justify-content:space-between;align-items:baseline;padding:4px 0;">'
+        f'<span style="font-size:12px;font-weight:600;color:#64748b;">Day Change</span>'
+        f'<span style="font-size:13px;font-weight:700;color:{day_dot};'
+        f'font-variant-numeric:tabular-nums;">{day_val}</span></div>'
+        f'<div style="display:flex;justify-content:space-between;align-items:baseline;padding:4px 0;">'
+        f'<span style="font-size:12px;font-weight:600;color:#64748b;">Unrealized P&L</span>'
+        f'<span style="font-size:13px;font-weight:700;color:{unr_dot};'
+        f'font-variant-numeric:tabular-nums;">{unr_val}</span></div>'
+        f'</div></div>',
+        unsafe_allow_html=True,
+    )
 
-# ── Pipeline ──
+    # ── Navigation ────────────────────────────────────────────────
+    st.markdown('<div class="snav-tree">', unsafe_allow_html=True)
+    _landing_active = st.session_state.get("show_landing", False)
+    for route, subs in _ROUTES.items():
+        is_active = (not _landing_active) and st.session_state.nav_primary == route
+
+        st.markdown(f'<div class="snav-heading-wrap{"  active" if is_active else ""}"></div>',
+                    unsafe_allow_html=True)
+        if st.button(route, key=f"snav_p__{route}", use_container_width=True):
+            st.session_state.nav_primary = route
+            st.session_state.nav_sub = (subs[0] if subs else None)
+            st.session_state.show_landing = False
+            st.rerun()
+
+        if subs:
+            for s in subs:
+                is_sub = is_active and st.session_state.nav_sub == s
+                st.markdown(f'<div class="snav-item-wrap{"  active" if is_sub else ""}"></div>',
+                            unsafe_allow_html=True)
+                if st.button(s, key=f"snav_s__{route}__{s}", use_container_width=True):
+                    st.session_state.nav_primary = route
+                    st.session_state.nav_sub = s
+                    st.session_state.show_landing = False
+                    st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
+
+# ══════════════════════════════════════════════════════════════════════
+# TOP BAR — Demo Mode + Portfolio Source + Load
+# ══════════════════════════════════════════════════════════════════════
+uploaded_file = None
+manual_mapping = None
+upload_method = "Default Portfolio"
+load_btn = False
+demo_mode = False
+
+# ── Sticky Header: Page Title + Actions + Blue Line ──────────────────
+primary = st.session_state.nav_primary
+sub = st.session_state.nav_sub
+
+_on_landing = st.session_state.get("show_landing", False)
+
+if _on_landing:
+    _page_title = (
+        '<span style="color:#94a3b8;">Invictus</span>'
+        '<span style="color:#cbd5e1;margin:0 8px;font-weight:400;">›</span>'
+        '<span style="color:#0f172a;">How It Works</span>'
+    )
+elif sub:
+    _page_title = (
+        f'<span style="color:#94a3b8;">{primary}</span>'
+        f'<span style="color:#cbd5e1;margin:0 8px;font-weight:400;">›</span>'
+        f'<span style="color:#0f172a;">{sub}</span>'
+    )
+else:
+    _page_title = f'<span style="color:#0f172a;">{primary}</span>'
+
+_header = st.container()
+with _header:
+    st.markdown('<div class="inv-header-pin"></div>', unsafe_allow_html=True)
+    _title_col, _hiw_col, _demo_col, _csv_col, _load_col = st.columns([3.4, 0.6, 0.6, 0.5, 0.6])
+
+    with _title_col:
+        st.markdown(
+            f'<div style="font-size:18px;font-weight:700;color:#94a3b8;'
+            f'padding:6px 0;letter-spacing:0.02em;">{_page_title}</div>',
+            unsafe_allow_html=True,
+        )
+
+    with _hiw_col:
+        if st.button("How It Works", key="top_hiw_btn", use_container_width=True, type="primary"):
+            st.session_state.show_landing = True
+            st.rerun()
+
+    with _demo_col:
+        demo_btn = st.button("Demo Mode", key="top_demo_btn", use_container_width=True, type="primary")
+
+    with _csv_col:
+        _csv_checked = st.checkbox("Upload CSV", key="top_csv_check", value=False)
+
+    with _load_col:
+        load_btn = st.button("Load Portfolio", key="top_load_btn", use_container_width=True, type="primary")
+
+    st.markdown(
+        '<div style="height:2px;background:linear-gradient(90deg,#1d4ed8 0%,#60a5fa 50%,transparent 100%);'
+        'margin:4px 0 0 0;border-radius:1px;"></div>',
+        unsafe_allow_html=True,
+    )
+
+# CSV upload panel (shown when checkbox is ticked)
+if _csv_checked:
+    uploaded_file = st.file_uploader(
+        "Upload portfolio CSV (max 2MB) — AI will auto-detect your holdings",
+        type=["csv"], key="top_csv_upload", label_visibility="collapsed",
+    )
+    if uploaded_file:
+        if uploaded_file.size > 2 * 1024 * 1024:
+            st.error("File too large. Maximum size is 2MB.")
+            uploaded_file = None
+        else:
+            upload_method = "Upload CSV"
+            st.caption("AI will automatically extract Ticker, Shares, and Cost Basis from your CSV — no manual mapping needed.")
+
+# Demo Mode — direct trigger (no dialog on first click, confirm inline)
+if demo_btn:
+    load_btn = True
+    demo_mode = True
+
+# ══════════════════════════════════════════════════════════════════════
+# PIPELINE — Load Portfolio + Run Agents
+# ══════════════════════════════════════════════════════════════════════
 if load_btn:
-    from invictus.data.portfolio_loader import load_portfolio_from_dict, fetch_price_history, compute_portfolio_state
+    from invictus.data.portfolio_loader import (
+        load_portfolio_from_dict, fetch_price_history, compute_portfolio_state,
+    )
     from invictus.data.smart_loader import smart_load_portfolio
     from invictus.agents.graph_state import PortfolioState as PState
     from invictus.agents.orchestrator import create_graph
 
-    with st.spinner("Executing pipeline..."):
+    st.session_state.agent_status = {k: "idle" for k in _AGENT_DISPLAY}
+    st.session_state.pipeline_running = True
+    _completed_nodes = []
+
+    # Observability
+    from invictus.observability.store import generate_run_id
+    from invictus.observability.collectors.agent_collector import log_agent_run
+    from invictus.observability.collectors.session_collector import log_pipeline_start, log_pipeline_complete
+    import time as _time
+    _run_id = generate_run_id()
+    _pipeline_start_time = _time.perf_counter()
+    _mode = "demo" if demo_mode else "csv" if (upload_method == "Upload CSV") else "default"
+    log_pipeline_start(session_id=st.session_state.get("_analytics_sid"), mode=_mode)
+
+    with st.status("Executing Invictus Pipeline...", expanded=True) as status_ui:
         try:
+            status_ui.update(label="Loading portfolio data...", state="running")
             if upload_method == "Upload CSV" and uploaded_file:
-                holdings = smart_load_portfolio(uploaded_file.getvalue().decode("utf-8"), manual_mapping=manual_mapping)
+                holdings = smart_load_portfolio(uploaded_file.getvalue().decode("utf-8"),
+                                                manual_mapping=manual_mapping)
             else:
                 holdings = load_portfolio_from_dict()
-            
+
             prices = fetch_price_history(holdings["Ticker"].tolist())
             state = compute_portfolio_state(holdings, prices)
             st.session_state.portfolio_state = state
             st.session_state.portfolio_loaded = True
-            
+
             graph = create_graph()
-            pstate = PState(holdings=state["holdings"], prices=state["prices"], returns=state["returns"], weights=state["weights"], total_value=state["total_value"])
-            pstate = graph.run(pstate)
-            
-            # Map results back to session state
-            st.session_state.risk_state = {"risk_metrics": pstate.risk_metrics, "correlation_matrix": pstate.correlation_matrix, "ticker_risk": pstate.ticker_risk}
-            st.session_state.pca_state = pstate.pca_results
-            st.session_state.vol_regime_state = pstate.vol_regime
-            st.session_state.stress_state = pstate.stress_results
-            st.session_state.greeks_state = pstate.greeks_results
-            st.session_state.flow_signals = pstate.flow_signals
-            st.session_state.ml_state = pstate.ml_predictions
-            st.session_state.filing_intel = pstate.filing_intel
-            st.session_state.earnings_intel = pstate.earnings_intel
+            pstate = PState(
+                holdings=state["holdings"], prices=state["prices"],
+                returns=state["returns"], weights=state["weights"],
+                total_value=state["total_value"],
+            )
+
+            _agent_timers = {}
+
+            def _pipeline_progress(node_name, stage_idx, total_stages):
+                display = _AGENT_DISPLAY.get(node_name, node_name)
+                # Log completion of previous agent
+                for prev in _completed_nodes:
+                    st.session_state.agent_status[prev] = "done"
+                    if prev in _agent_timers:
+                        elapsed = (_time.perf_counter() - _agent_timers[prev]) * 1000
+                        log_agent_run(prev, _run_id, "success", elapsed)
+                # Start timing current agent
+                st.session_state.agent_status[node_name] = "working"
+                _agent_timers[node_name] = _time.perf_counter()
+                _completed_nodes.append(node_name)
+                stage_pct = int((stage_idx / total_stages) * 100)
+                status_ui.update(label=f"Running {display}... ({stage_pct}%)", state="running")
+                st.write(f"▸ **{display}**")
+
+            pstate = graph.run(pstate, progress_callback=_pipeline_progress)
+
+            # Log final agent + mark all done
+            for node_name in _completed_nodes:
+                st.session_state.agent_status[node_name] = "done"
+                if node_name in _agent_timers:
+                    elapsed = (_time.perf_counter() - _agent_timers[node_name]) * 1000
+                    log_agent_run(node_name, _run_id, "success", elapsed)
+
+            if pstate.errors:
+                for err_str in pstate.errors:
+                    if err_str.startswith("[") and "]" in err_str:
+                        err_node = err_str[1:err_str.index("]")]
+                        if err_node in st.session_state.agent_status:
+                            st.session_state.agent_status[err_node] = "error"
+                            log_agent_run(err_node, _run_id, "error", 0,
+                                          error_type="AgentError", error_message=err_str)
+
+            st.session_state.risk_state = {
+                "risk_metrics": pstate.risk_metrics,
+                "correlation_matrix": pstate.correlation_matrix,
+                "ticker_risk": pstate.ticker_risk,
+            }
+            st.session_state.pca_state            = pstate.pca_results
+            st.session_state.vol_regime_state     = pstate.vol_regime
+            st.session_state.stress_state         = pstate.stress_results
+            st.session_state.greeks_state         = pstate.greeks_results
+            st.session_state.flow_signals         = pstate.flow_signals
+            st.session_state.ml_state             = pstate.ml_predictions
+            st.session_state.filing_intel         = pstate.filing_intel
+            st.session_state.earnings_intel       = pstate.earnings_intel
             st.session_state.conviction_synthesis = pstate.conviction_synthesis
-            st.session_state.commentary_state = pstate.commentary
-            st.session_state.rag_state = pstate.rag_insights
-            st.session_state.pnl_state = pstate.pnl_attribution
+            st.session_state.commentary_state     = pstate.commentary
+            st.session_state.rag_state            = pstate.rag_insights
+            st.session_state.pnl_state            = pstate.pnl_attribution
+
+            st.session_state.pipeline_running = False
+
+            # ── Demo Mode: also run PI + Hypo Simulator ──────────
+            if demo_mode:
+                status_ui.update(label="Demo: Running Predictive Intel...", state="running")
+                st.write("▸ **Predictive Intel (demo)**")
+
+                from invictus.agents.filing_agent import _extract_yfinance_fundamental_signals
+                from invictus.agents.earnings_agent import _fetch_yfinance_sentiment_context, _analyze_sentiment_with_llm, _dictionary_sentiment
+                from invictus.agents.flow_agent import _fetch_flow_data, _score_flows
+                from invictus.agents.outlook_agent import analyze_management_outlook
+                from invictus.agents.synthesis_agent import _calculate_stock_conviction
+
+                demo_tickers = holdings["Ticker"].tolist()[:3]
+                pi_filing, pi_earnings, pi_flows, pi_outlook, pi_synthesis = {}, {}, {}, {}, {}
+
+                for t in demo_tickers:
+                    if st.session_state.filing_intel and t in st.session_state.filing_intel:
+                        pi_filing[t] = st.session_state.filing_intel[t]
+                    else:
+                        pi_filing[t] = _extract_yfinance_fundamental_signals(t)
+
+                    if st.session_state.earnings_intel and t in st.session_state.earnings_intel:
+                        pi_earnings[t] = st.session_state.earnings_intel[t]
+                    else:
+                        ctx = _fetch_yfinance_sentiment_context(t)
+                        result = _analyze_sentiment_with_llm(t, ctx)
+                        pi_earnings[t] = result if result.get("status") == "Success" else _dictionary_sentiment(ctx)
+
+                    if st.session_state.flow_signals and t in st.session_state.flow_signals.get("intel", {}):
+                        pi_flows[t] = st.session_state.flow_signals["intel"][t]
+                    else:
+                        raw_flow = _fetch_flow_data(t)
+                        pi_flows[t] = _score_flows(t, raw_flow)
+
+                    try:
+                        pi_outlook[t] = analyze_management_outlook(t)
+                    except Exception:
+                        pi_outlook[t] = {"status": "Error", "management_signal": 0,
+                            "outlook_score_raw": 0, "credibility_multiplier": 0.75,
+                            "outlook": {"dimensions": {}, "outlook_score": 0, "status": "Error"},
+                            "credibility": {"sub_dimensions": {}, "raw_credibility": 0.5,
+                                "credibility_multiplier": 0.75, "status": "Error"},
+                            "data_sources": "Error", "ticker": t}
+
+                vol_regime = st.session_state.vol_regime_state.get("current_regime") if st.session_state.vol_regime_state else None
+                for t in demo_tickers:
+                    f = pi_filing.get(t, {"status": "N/A"})
+                    e = pi_earnings.get(t, {"status": "N/A"})
+                    fl = pi_flows.get(t, {"status": "N/A"})
+                    ml_pred = None
+                    if st.session_state.ml_state and "prediction_table" in (st.session_state.ml_state or {}):
+                        import pandas as _pd
+                        pt = st.session_state.ml_state["prediction_table"]
+                        if isinstance(pt, _pd.DataFrame) and t in pt["Ticker"].values:
+                            row = pt[pt["Ticker"] == t].iloc[0]
+                            ml_pred = {"accumulation_prob": row.get("Accumulation Prob", 0.5)}
+                    pi_synthesis[t] = _calculate_stock_conviction(t, f, e, fl, ml_pred, vol_regime, "1 year")
+
+                st.session_state.pi_results = {
+                    "filing": pi_filing, "earnings": pi_earnings,
+                    "flows": pi_flows, "outlook": pi_outlook,
+                    "synthesis": pi_synthesis, "tickers": demo_tickers,
+                }
+                st.session_state.pi_selected_tickers = demo_tickers
+
+                # Run Hypo Simulator with $5,000 per ticker
+                status_ui.update(label="Demo: Running Hypo Simulator...", state="running")
+                st.write("▸ **Hypo Simulator (demo)**")
+
+                from invictus.agents.hypo_agent import compute_before_after, generate_pros_cons
+                demo_positions = {t: 5000.0 for t in demo_tickers}
+                comparison = compute_before_after(
+                    st.session_state.portfolio_state,
+                    st.session_state.risk_state,
+                    demo_positions,
+                    prices,
+                )
+                if "error" not in comparison:
+                    commentary = generate_pros_cons(comparison)
+                    st.session_state.hypo_results = {
+                        "comparison": comparison,
+                        "commentary": commentary,
+                        "positions": demo_positions,
+                    }
+
+            # Log pipeline completion
+            _pipeline_duration = (_time.perf_counter() - _pipeline_start_time) * 1000
+            log_pipeline_complete(
+                session_id=st.session_state.get("_analytics_sid"),
+                duration_ms=_pipeline_duration, mode=_mode,
+            )
+
+            status_ui.update(label="Pipeline complete — all agents finished", state="complete", expanded=False)
+            st.session_state.show_landing = False
             st.rerun()
-        except Exception as e: st.error(f"Execution Error: {e}")
+        except Exception as e:
+            st.session_state.pipeline_running = False
+            status_ui.update(label=f"Pipeline error: {e}", state="error")
+            st.error(f"Execution Error: {e}")
 
-# ── Overview ──
-with _tab_contexts["Overview"]:
-    if st.session_state.portfolio_loaded:
-        s = st.session_state.portfolio_state
-        m1, m2, m3, m4, m5 = st.columns(5)
-        with m1: render_metric_card("Portfolio Value", fmt_currency(s["total_value"]))
-        with m2: render_metric_card("Daily P&L", fmt_currency(s["total_daily_pnl"]), delta_val=s["total_daily_pnl"])
-        with m3: render_metric_card("Unrealized P&L", fmt_currency(s["total_unrealized_pnl"]), delta_val=s["total_unrealized_pnl"])
-        with m4: render_metric_card("Cost Basis", fmt_currency(s["total_cost"]))
-        with m5: render_metric_card("Positions", str(len(s["summary"])))
-        
-        c1, c2 = st.columns([1.2, 1])
-        with c1:
-            st.markdown('<div class="section-header">Allocation</div>', unsafe_allow_html=True)
-            with st.container(border=True):
-                df = s["summary"].sort_values("Market Value", ascending=False)
-                fig = go.Figure(go.Pie(labels=df["Ticker"], values=df["Market Value"], hole=0.6, marker=dict(colors=px.colors.qualitative.Prism)))
-                apply_invictus_layout(fig)
-                st.plotly_chart(fig, use_container_width=True)
-            
-            st.markdown('<div class="section-header">Relative Performance (Normalized to 100)</div>', unsafe_allow_html=True)
-            with st.container(border=True):
-                tickers = s["holdings"]["Ticker"].tolist()
-                price_data = s["prices"][tickers]
-                normalized = price_data / price_data.iloc[0] * 100
-                fig_prices = go.Figure()
-                colors_line = px.colors.qualitative.Plotly
-                for i, ticker in enumerate(tickers):
-                    fig_prices.add_trace(go.Scatter(
-                        x=normalized.index, y=normalized[ticker], mode="lines", name=ticker,
-                        line=dict(width=2, color=colors_line[i % len(colors_line)]),
-                        hovertemplate=f"<b>{ticker}</b>: %{{y:.2f}}<extra></extra>"
-                    ))
-                apply_invictus_layout(fig_prices, height=500, showlegend=True)
-                fig_prices.update_layout(yaxis=dict(side="right"), legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
-                st.plotly_chart(fig_prices, use_container_width=True, config={"displayModeBar": False})
+# ══════════════════════════════════════════════════════════════════════
+# LANDING PAGE — shows when show_landing is active
+# ══════════════════════════════════════════════════════════════════════
+if _on_landing:
+    landing.render()
 
-        with c2:
-            st.markdown('<div class="section-header">AI Commentary</div>', unsafe_allow_html=True)
-            if st.session_state.commentary_state:
-                cm = st.session_state.commentary_state
-                ct1, ct2, ct3 = st.tabs(["Institutional PM", "Risk Manager", "Technicals"])
-                with ct1: st.markdown(f'<div class="commentary-box">{cm.get("pm_summary", "")}</div>', unsafe_allow_html=True)
-                with ct2: st.markdown(f'<div class="commentary-box">{cm.get("risk_manager", "")}</div>', unsafe_allow_html=True)
-                with ct3: st.markdown(f'<div class="commentary-box">{cm.get("technical_summary", "")}</div>', unsafe_allow_html=True)
-            else: st.info("Commentary results pending full pipeline run.")
+# ══════════════════════════════════════════════════════════════════════
+# PAGE ROUTING
+# ══════════════════════════════════════════════════════════════════════
+elif primary == "Portfolio Intelligence":
+    # Map new sub-tab names to old ones for the page module
+    _pi_sub_map = {
+        "Overview": "Dashboard", "Risk Analytics": "Analytics",
+        "Factor Decomposition": "PCA", "Volatility Regimes": "Vol Regime",
+        "Stress Scenarios": "Stress Test", "P&L Attribution": "Attribution",
+    }
+    portfolio_analytics.render(_pi_sub_map.get(sub, sub))
+elif primary == "Conviction Intelligence":
+    _ci_sub_map = {
+        "Conviction Engine": "Engine", "Capital Flows": "Flows",
+        "Management Outlook": "Outlook", "Transcript Analysis": "Transcript",
+    }
+    conviction.render(_ci_sub_map.get(sub, sub))
+elif primary == "Allocation Engine":
+    hypo_simulator.render(sub)
+elif primary == "Agent Tracker":
+    # Agent Tracker — show all agent statuses
+    from invictus.design import render_section_header
+    render_section_header("Agent Tracker")
 
-# ── Risk ──
-with _tab_contexts["Portfolio Risk"]:
-    if st.session_state.risk_state:
-        rt1, rt2, rt3, rt4, rt5, rt6 = st.tabs(["Analytics", "PCA", "Vol Regime", "Stress Test", "Greeks", "Attribution"])
-        
-        with rt1: # Analytics
-            st.markdown('<div class="section-header">Core Risk Metrics</div>', unsafe_allow_html=True)
-            rm = st.session_state.risk_state["risk_metrics"]
-            c1, c2, c3, c4 = st.columns(4)
-            with c1: render_metric_card("Ann. Volatility", f"{rm.get('annualized_volatility', 0):.1%}")
-            with c2: render_metric_card("Sharpe Ratio", f"{rm.get('sharpe_ratio', 0):.2f}")
-            with c3: render_metric_card("Max Drawdown", f"{rm.get('max_drawdown', 0):.1%}")
-            with c4: render_metric_card("VAR (95%)", f"{rm.get('var_95_historical', 0):.2%}")
-        
-        with rt2:
-            st.markdown('<div class="section-header">PCA Factor Decomposition</div>', unsafe_allow_html=True)
-            if st.session_state.pca_state:
-                pca = st.session_state.pca_state
-                rc = {"HIGH": "#ff4b4b", "MODERATE": "#1d4ed8", "LOW": "#10b981"}[pca["concentration"]]
-                st.markdown(f'<div style="background:#f8fafc; border-left:4px solid {rc}; padding:16px; border-radius:4px; margin-bottom:20px;"><span style="color:{rc}; font-weight:700; font-size:14px;">CONCENTRATION: {pca["concentration"]}</span><br/>{pca["assessment"]}</div>', unsafe_allow_html=True)
-                c_scree, c_load = st.columns(2)
-                with c_scree:
-                    with st.container(border=True):
-                        fig_s = go.Figure(go.Bar(x=[f"PC{i+1}" for i in range(len(pca["explained_variance"]))], y=pca["explained_variance"], marker_color="#1d4ed8"))
-                        apply_invictus_layout(fig_s, height=400, title="Variance Explained")
-                        st.plotly_chart(fig_s, use_container_width=True)
-                with c_load:
-                    with st.container(border=True):
-                        loadings = pca["loadings"]
-                        fig_l = go.Figure(go.Heatmap(z=loadings.values, x=loadings.columns.tolist(), y=loadings.index.tolist(), colorscale=[[0, "#ff4b4b"], [0.5, "#f8fafc"], [1, "#10b981"]]))
-                        apply_invictus_layout(fig_l, height=400, title="Factor Loadings")
-                        st.plotly_chart(fig_l, use_container_width=True)
-
-
-        with rt3:
-            st.markdown('<div class="section-header">Volatility Regime Detection</div>', unsafe_allow_html=True)
-            if st.session_state.vol_regime_state:
-                vr = st.session_state.vol_regime_state
-                with st.container(border=True):
-                    rc = {"Low": "#10b981", "Medium": "#1d4ed8", "High": "#ff4b4b"}[vr["current_regime"]]
-                    st.markdown(f'<span style="color:{rc}; font-weight:700; font-size:20px;">CURRENT REGIME: {vr["current_regime"].upper()}</span><br/>Ann. Vol: {vr["current_vol"]:.1%} | Days in Regime: {vr["days_in_regime"]}', unsafe_allow_html=True)
-                    
-                    fig_v = go.Figure()
-                    for n, c in {"Low": "#10b981", "Medium": "#1d4ed8", "High": "#ff4b4b"}.items():
-                        mask = vr["regime_series"] == n
-                        fig_v.add_trace(go.Scatter(x=vr["rolling_vol"].index, y=vr["rolling_vol"].where(mask), mode="lines", name=n, line=dict(color=c, width=2), connectgaps=False))
-                    apply_invictus_layout(fig_v, height=400, showlegend=True, title="Rolling Volatility with Regime Overlay")
-                    st.plotly_chart(fig_v, use_container_width=True)
-
-        with rt4:
-            st.markdown('<div class="section-header">Historical Shocks & Scenarios</div>', unsafe_allow_html=True)
-            if st.session_state.stress_state:
-                sr = st.session_state.stress_state
-                sum_df = sr["summary"]
-                with st.container(border=True):
-                    fig_s = go.Figure(go.Bar(x=sum_df["Scenario"], y=sum_df["Portfolio Return"], marker_color=["#ff4b4b" if v < 0 else "#10b981" for v in sum_df["Portfolio Return"]]))
-                    apply_invictus_layout(fig_s, height=400, title="Historical Scenario Impact")
-                    st.plotly_chart(fig_s, use_container_width=True)
-                    st.dataframe(sum_df.style.format({"Portfolio Return": "{:.2%}", "Portfolio P&L": "${:+,.0f}"}), use_container_width=True, hide_index=True)
-
-        with rt5:
-            st.markdown('<div class="section-header">Portfolio Greeks</div>', unsafe_allow_html=True)
-            if st.session_state.greeks_state:
-                gr = st.session_state.greeks_state
-                c1, c2, c3, c4 = st.columns(4)
-                with c1: render_metric_card("Delta", f"{gr.get('portfolio_greeks', {}).get('delta', 0):.2f}")
-                with c2: render_metric_card("Gamma", f"{gr.get('portfolio_greeks', {}).get('gamma', 0):.4f}")
-                with c3: render_metric_card("Vega", f"{gr.get('portfolio_greeks', {}).get('vega', 0):.2f}")
-                with c4: render_metric_card("Theta", f"{gr.get('portfolio_greeks', {}).get('theta', 0):.2f}")
-
-        with rt6:
-            st.markdown('<div class="section-header">P&L Attribution (Alpha vs Beta)</div>', unsafe_allow_html=True)
-            if st.session_state.pnl_state:
-                pa = st.session_state.pnl_state
-                c1, c2, c3 = st.columns(3)
-                with c1: render_metric_card("Portfolio Return", f"{pa.get('portfolio_return', 0):+.3%}", delta_val=pa.get('portfolio_return', 0))
-                with c2: render_metric_card("Single-Stock Alpha", f"{pa.get('single_stock_contribution', 0):+.3%}", delta_val=pa.get('single_stock_contribution', 0))
-                with c3: render_metric_card("Macro/Factor Beta", f"{sum(pa.get('macro_contributions', {}).values()):+.3%}")
-
-                with st.container(border=True):
-                    tc = pa["ticker_contributions"].sort_values("Contribution")
-                    fig_tc = go.Figure(go.Bar(x=tc["Contribution"], y=tc["Ticker"], orientation="h", marker_color=["#ff4b4b" if v < 0 else "#10b981" for v in tc["Contribution"]]))
-                    apply_invictus_layout(fig_tc, height=450, title="Ticker-Level Attribution")
-                    st.plotly_chart(fig_tc, use_container_width=True)
-
-# ── Predictive ──
-with _tab_contexts["Predictive Intelligence"]:
-    if st.session_state.conviction_synthesis:
-        sy = st.session_state.conviction_synthesis
-        pt1, pt2, pt3, pt4 = st.tabs(["Summary", "10-K Sentiments", "Transcript Analysis", "Institutional Flows"])
-        with pt1:
-            st.markdown('<div class="section-header">Institutional Conviction Summary</div>', unsafe_allow_html=True)
-            render_metric_card("Conviction Score", f"{sy.get('overall_portfolio_conviction', 0):.1%}")
-            for t, res in sy["results"].items():
-                with st.expander(f"{t} - {res['conviction_level']}"):
-                    render_football_field(t, res["signals_detail"], res["outperformance_probability"])
-        with pt2:
-            if st.session_state.filing_intel:
-                for t, d in st.session_state.filing_intel.items():
-                    with st.expander(f"{t} - Filing Analysis"):
-                        c1, c2, c3 = st.columns(3)
-                        with c1: render_metric_card('Fundamentals', f"{d.get('fundamental_conviction', 0):+.2f}", delta_val=d.get('fundamental_conviction', 0))
-                        with c2: render_metric_card('Guidance', f"{d.get('guidance_momentum', 0):+.2f}", delta_val=d.get('guidance_momentum', 0))
-                        with c3: render_metric_card('Risk Deterioration', f"{d.get('risk_deterioration', 0):.2f}")
-                        st.write(d.get("fundamental_reasoning", "N/A"))
-        with pt3:
-            if st.session_state.earnings_intel:
-                for t, d in st.session_state.earnings_intel.items():
-                    with st.expander(f"{t} - Management Tone"):
-                        c1, c2 = st.columns(2)
-                        with c1: render_metric_card('Confidence', f"{d.get('management_confidence', 0):+.2f}", delta_val=d.get('management_confidence', 0))
-                        with c2: render_metric_card('Pressure', f"{d.get('analyst_pressure', 0):.2f}")
-                        st.write(d.get("confidence_reasoning", "N/A"))
-        with pt4:
-            if st.session_state.flow_signals:
-                st.markdown('<div class="section-header">Institutional Flow Aggregator</div>', unsafe_allow_html=True)
-                rows = []
-                for t, d in st.session_state.flow_signals.get("intel", {}).items():
-                    rows.append({"Ticker": t, "Composite": d.get("flow_composite", 0), "Smart Money %": d.get("smart_money_pct", 0), "Insider Align": d.get("insider_alignment", 0)})
-                st.dataframe(pd.DataFrame(rows).style.format({"Composite": "{:+.2f}", "Smart Money %": "{:.1%}", "Insider Align": "{:+.2f}"}), use_container_width=True, hide_index=True)
-
-
-# ── Full Report ──
-with _tab_contexts["Full Report"]:
-    if st.session_state.conviction_synthesis:
-        synth = st.session_state.conviction_synthesis
-        st.markdown('<div class="section-header">Executive Summary</div>', unsafe_allow_html=True)
-        render_metric_card("Portfolio Conviction", f"{synth.get('overall_portfolio_conviction', 0):.1%}")
-        
-        # Aggregated Commentary
-        if st.session_state.commentary_state:
-            cm = st.session_state.commentary_state
-            st.markdown('<div class="section-header">Aggregated Commentary</div>', unsafe_allow_html=True)
-            st.markdown(f'<div class="commentary-box">{cm.get("pm_summary", "Not available")}</div>', unsafe_allow_html=True)
-        
-        # Portfolio Inventory
-        if st.session_state.portfolio_state:
-            st.markdown('<div class="section-header">Portfolio Inventory</div>', unsafe_allow_html=True)
-            state = st.session_state.portfolio_state
-            fmt_cols = {"Cost Basis": "${:.2f}", "Current Price": "${:.2f}", "Market Value": "${:,.2f}", "Weight (%)": "{:.1f}%"}
-            st.dataframe(state["summary"].style.format(fmt_cols, na_rep="—"), use_container_width=True, hide_index=True)
+    if not st.session_state.portfolio_loaded:
+        st.info("Load a portfolio or run Demo Mode to activate agents.")
     else:
-        st.info("Full institutional report is generated automatically on portfolio load.")
+        done_agents = [a for a in _SIDEBAR_AGENTS if _agent_status(a) == "done"]
+        working_agents = [a for a in _SIDEBAR_AGENTS if _agent_status(a) == "working"]
+        error_agents = [a for a in _SIDEBAR_AGENTS if _agent_status(a) == "error"]
+        idle_agents = [a for a in _SIDEBAR_AGENTS if _agent_status(a) == "idle"]
 
+        t1, t2, t3, t4 = st.columns(4)
+        with t1:
+            from invictus.design import render_metric_card as _rmc
+            _rmc("Total Agents", str(len(_SIDEBAR_AGENTS)))
+        with t2: _rmc("Completed", str(len(done_agents)), delta_val=len(done_agents))
+        with t3: _rmc("Running", str(len(working_agents)))
+        with t4: _rmc("Errors", str(len(error_agents)), delta_val=-len(error_agents) if error_agents else 0)
 
-# ── Dev Console ──
-if st.query_params.get("dev") == "invictus":
-    with _tab_contexts["Dev Console"]:
-        st.markdown('<div class="section-header">Developer Analytics</div>', unsafe_allow_html=True)
-        stats = _analytics_get_summary_stats()
-        k1, k2, k3 = st.columns(3)
-        with k1: render_metric_card("Sessions", str(stats.get("total_sessions", 0)))
-        with k2: render_metric_card("Views", str(stats.get("total_page_views", 0)))
-        with k3: render_metric_card("Clicks", str(stats.get("total_clicks", 0)))
+        # Agent list with status
+        _status_colors = {"done": SUCCESS_GREEN, "working": "#f59e0b", "error": DANGER_RED, "idle": SLATE_500}
+        _status_labels = {"done": "COMPLETE", "working": "RUNNING", "error": "ERROR", "idle": "IDLE"}
+        agent_html = ""
+        for agent in _SIDEBAR_AGENTS:
+            status = _agent_status(agent)
+            color = _status_colors[status]
+            label = _status_labels[status]
+            agent_html += (
+                f'<div style="display:flex;justify-content:space-between;align-items:center;'
+                f'padding:8px 12px;border-bottom:1px solid #f1f5f9;">'
+                f'<div style="display:flex;align-items:center;gap:10px;">'
+                f'<div style="width:8px;height:8px;border-radius:50%;background:{color};'
+                f'box-shadow:0 0 4px {color};"></div>'
+                f'<span style="font-size:13px;font-weight:600;color:#1e293b;">{agent}</span></div>'
+                f'<span style="font-size:10px;font-weight:700;color:{color};'
+                f'letter-spacing:0.06em;">{label}</span></div>'
+            )
+        st.markdown(
+            f'<div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;'
+            f'overflow:hidden;margin-top:12px;">{agent_html}</div>',
+            unsafe_allow_html=True,
+        )
+elif primary == "Dev Analytics":
+    dev_analytics.render(sub)
 
-        st.markdown("### State Debugger")
-        for key in ["filing_intel", "earnings_intel", "flow_signals", "conviction_synthesis"]:
-            val = st.session_state.get(key)
-            with st.expander(f"Debug: {key}"):
-                st.write(val)
+# ══════════════════════════════════════════════════════════════════════
+# FOOTER — Disclaimer + Agent Status
+# ══════════════════════════════════════════════════════════════════════
+done_count = sum(1 for a in _SIDEBAR_AGENTS if _agent_status(a) == "done")
+working_count = sum(1 for a in _SIDEBAR_AGENTS if _agent_status(a) == "working")
+error_count = sum(1 for a in _SIDEBAR_AGENTS if _agent_status(a) == "error")
+total = len(_SIDEBAR_AGENTS)
 
-# ── Footer ────────────────────────────────────────────────────────────
-st.markdown('<div class="inv-footer"><span>© 2026 Invictus Portfolio Intelligence</span><span class="sep">|</span><span>Informational Only</span><span class="sep">|</span><span>Yahoo Finance & Finnhub</span></div>', unsafe_allow_html=True)
+if working_count > 0:
+    agent_indicator = f'<span style="color:#f59e0b;font-weight:800;">● RUNNING {done_count}/{total}</span>'
+elif done_count == total and st.session_state.portfolio_loaded:
+    agent_indicator = f'<span style="color:#10b981;font-weight:800;">● {done_count}/{total} COMPLETE</span>'
+elif done_count > 0:
+    agent_indicator = f'<span style="color:#10b981;">{done_count}/{total} done</span>'
+    if error_count > 0:
+        agent_indicator += f' <span style="color:#ef4444;">{error_count} err</span>'
+else:
+    agent_indicator = f'<span style="opacity:0.5;">{done_count}/{total}</span>'
 
-# ── Heartbeat ─────────────────────────────────────────────────────────
-@st.fragment(run_every=60)
-def heartbeat():
-    if st.session_state.portfolio_loaded: st.rerun()
-heartbeat()
+# Footer — disclaimer centered, agent tracker pinned right
+st.markdown(
+    f'<div class="inv-footer">'
+    f'<div style="flex:1;"></div>'
+    f'<div style="display:flex;align-items:center;gap:12px;">'
+    f'<span>© 2026 Invictus Equity Portfolio Intelligence</span>'
+    f'<span class="sep">|</span>'
+    f'<span>Not investment advice. Educational purposes only.</span>'
+    f'<span class="sep">|</span>'
+    f'<span>Data: Yahoo Finance, FMP API, SEC 13F Filings</span></div>'
+    f'<div style="flex:1;text-align:right;">Agents {agent_indicator}</div>'
+    f'</div>',
+    unsafe_allow_html=True,
+)
