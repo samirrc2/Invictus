@@ -64,14 +64,21 @@ COMPOSITE: flow_composite = 0.35·insider + 0.40·fund_trend + 0.25·concentrati
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 """
 import logging
+import json
 import yfinance as yf
 import numpy as np
 import pandas as pd
+from pathlib import Path
 from datetime import datetime, timedelta
 from typing import Dict, Any, Optional, List
 import streamlit as st
 
 _log = logging.getLogger(__name__)
+
+# ── Demo data fallback ──
+# When yfinance returns empty data (common on Streamlit Cloud due to
+# rate limits), fall back to cached flow data from invictus/data/demo/.
+_DEMO_DIR = Path(__file__).resolve().parent.parent / "data" / "demo"
 
 from invictus.agents.graph_state import PortfolioState
 
@@ -240,9 +247,30 @@ def _safe_col(row, candidates, default=None):
     return default if default is not None else 0
 
 
+def _load_demo_flow_data(ticker: str) -> Optional[Dict[str, Any]]:
+    """
+    Load cached flow data from invictus/data/demo/<ticker>/flow_data.json.
+    Returns None if the file doesn't exist or can't be parsed.
+    """
+    path = _DEMO_DIR / ticker.lower() / "flow_data.json"
+    if not path.exists():
+        return None
+    try:
+        with open(path, "r") as f:
+            data = json.load(f)
+        _log.info("Flow: loaded demo cache for %s (%d inst, %d ins)",
+                  ticker, len(data.get("institutional", [])), len(data.get("insiders", [])))
+        return data
+    except Exception as e:
+        _log.warning("Flow: failed to load demo cache for %s: %s", ticker, e)
+        return None
+
+
 def _fetch_flow_data(ticker: str) -> Dict[str, Any]:
     """
     Fetches institutional and insider data using yfinance.
+    Falls back to cached demo data if yfinance returns empty
+    (common on Streamlit Cloud due to rate limits).
 
     Enrichments over raw yfinance data:
       - Insider transactions get cross-referenced with insider_roster_holders
@@ -423,6 +451,32 @@ def _fetch_flow_data(ticker: str) -> Dict[str, Any]:
 
         _status = "Success" if (inst_list or insider_list) else "Data source not available"
         _latency = (_t.perf_counter() - _fetch_start) * 1000
+
+        # ── Demo data fallback ──
+        # If yfinance returned empty (rate-limited on Streamlit Cloud),
+        # try loading from cached demo data.
+        if _status != "Success":
+            demo = _load_demo_flow_data(ticker)
+            if demo:
+                _log.info("Flow: %s — yfinance empty, using demo cache", ticker)
+                demo["source"] = "demo_cache"
+                demo["status"] = "Success"
+                # Log demo fallback to observability
+                try:
+                    from invictus.observability.store import insert, generate_run_id
+                    insert("data_health", {
+                        "run_id": generate_run_id(),
+                        "source": "yfinance_flow",
+                        "ticker": ticker,
+                        "status": "demo_fallback",
+                        "latency_ms": _latency,
+                        "records_fetched": len(demo.get("institutional", [])) + len(demo.get("insiders", [])),
+                        "error_message": "yfinance empty — used demo cache",
+                    })
+                except Exception:
+                    pass
+                return demo
+
         _log.info("Flow fetch %s: status=%s, inst=%d, ins=%d, %.0fms",
                   ticker, _status, len(inst_list), len(insider_list), _latency)
         # Log to observability data_health table
@@ -464,6 +518,13 @@ def _fetch_flow_data(ticker: str) -> Dict[str, Any]:
             })
         except Exception:
             pass
+        # Try demo fallback on crash too
+        demo = _load_demo_flow_data(ticker)
+        if demo:
+            _log.info("Flow: %s — yfinance crashed, using demo cache", ticker)
+            demo["source"] = "demo_cache"
+            demo["status"] = "Success"
+            return demo
         return {"institutional": [], "insiders": [], "shares_outstanding": 0, "source": "yfinance", "status": "Data source not available"}
 
 

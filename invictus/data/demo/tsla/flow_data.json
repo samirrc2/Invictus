@@ -1,0 +1,172 @@
+{
+  "institutional": [
+    {
+      "holder": "Vanguard Group Inc",
+      "shares": 198765432,
+      "pctChange": 0.005,
+      "pctChangeRaw": 0.005,
+      "value": 55654000000,
+      "pctHeld": 0.0621,
+      "pctHeldPrev": 0.0618,
+      "date_reported": "Mar 31, 2026",
+      "classification": "passive"
+    },
+    {
+      "holder": "BlackRock Inc.",
+      "shares": 165432109,
+      "pctChange": -0.01,
+      "pctChangeRaw": -0.01,
+      "value": 46321000000,
+      "pctHeld": 0.0517,
+      "pctHeldPrev": 0.0522,
+      "date_reported": "Mar 31, 2026",
+      "classification": "passive"
+    },
+    {
+      "holder": "State Street Corporation",
+      "shares": 95678901,
+      "pctChange": -0.02,
+      "pctChangeRaw": -0.02,
+      "value": 26790000000,
+      "pctHeld": 0.0299,
+      "pctHeldPrev": 0.0305,
+      "date_reported": "Mar 31, 2026",
+      "classification": "passive"
+    },
+    {
+      "holder": "Geode Capital Management LLC",
+      "shares": 45678901,
+      "pctChange": 0.008,
+      "pctChangeRaw": 0.008,
+      "value": 12790000000,
+      "pctHeld": 0.0143,
+      "pctHeldPrev": 0.0142,
+      "date_reported": "Mar 31, 2026",
+      "classification": "passive"
+    },
+    {
+      "holder": "Citadel Advisors LLC",
+      "shares": 12345678,
+      "pctChange": -0.10,
+      "pctChangeRaw": -0.10,
+      "value": 3457000000,
+      "pctHeld": 0.0039,
+      "pctHeldPrev": 0.0043,
+      "date_reported": "Mar 31, 2026",
+      "classification": "smart_money"
+    },
+    {
+      "holder": "Capital Research Global Investors",
+      "shares": 35678901,
+      "pctChange": -0.05,
+      "pctChangeRaw": -0.05,
+      "value": 9990000000,
+      "pctHeld": 0.0111,
+      "pctHeldPrev": 0.0117,
+      "date_reported": "Mar 31, 2026",
+      "classification": "smart_money"
+    },
+    {
+      "holder": "FMR LLC",
+      "shares": 42345678,
+      "pctChange": -0.03,
+      "pctChangeRaw": -0.03,
+      "value": 11857000000,
+      "pctHeld": 0.0132,
+      "pctHeldPrev": 0.0136,
+      "date_reported": "Mar 31, 2026",
+      "classification": "passive"
+    },
+    {
+      "holder": "Millennium Management LLC",
+      "shares": 6789012,
+      "pctChange": 0.20,
+      "pctChangeRaw": 0.20,
+      "value": 1901000000,
+      "pctHeld": 0.0021,
+      "pctHeldPrev": 0.0018,
+      "date_reported": "Mar 31, 2026",
+      "classification": "smart_money"
+    },
+    {
+      "holder": "Northern Trust Corporation",
+      "shares": 28901234,
+      "pctChange": 0.003,
+      "pctChangeRaw": 0.003,
+      "value": 8092000000,
+      "pctHeld": 0.0090,
+      "pctHeldPrev": 0.0090,
+      "date_reported": "Mar 31, 2026",
+      "classification": "passive"
+    },
+    {
+      "holder": "T. Rowe Price Associates",
+      "shares": 18234567,
+      "pctChange": -0.08,
+      "pctChangeRaw": -0.08,
+      "value": 5106000000,
+      "pctHeld": 0.0057,
+      "pctHeldPrev": 0.0062,
+      "date_reported": "Mar 31, 2026",
+      "classification": "smart_money"
+    }
+  ],
+  "insiders": [
+    {
+      "name": "MUSK ELON",
+      "role": "Chief Executive Officer",
+      "transaction": "Sale",
+      "shares": 4500000,
+      "value": 1260000000,
+      "date": "Apr 05, 2026",
+      "role_weight": 3.0,
+      "shares_owned": 715000000,
+      "stake_pct": 22.34,
+      "tx_pct_of_stake": 0.6
+    },
+    {
+      "name": "TANEJA VAIBHAV",
+      "role": "Chief Financial Officer",
+      "transaction": "Sale",
+      "shares": 50000,
+      "value": 14000000,
+      "date": "Mar 22, 2026",
+      "role_weight": 3.0,
+      "shares_owned": 320000,
+      "stake_pct": 0.010,
+      "tx_pct_of_stake": 15.6
+    },
+    {
+      "name": "BAGLINO ANDREW D",
+      "role": "Senior Vice President",
+      "transaction": "Sale",
+      "shares": 80000,
+      "value": 22400000,
+      "date": "Mar 01, 2026",
+      "role_weight": 2.0,
+      "shares_owned": 250000,
+      "stake_pct": 0.008,
+      "tx_pct_of_stake": 32.0
+    },
+    {
+      "name": "KIRKHORN ZACHARY J",
+      "role": "Officer",
+      "transaction": "Sale",
+      "shares": 35000,
+      "value": 9800000,
+      "date": "Feb 18, 2026",
+      "role_weight": 1.0,
+      "shares_owned": 120000,
+      "stake_pct": 0.004,
+      "tx_pct_of_stake": 29.2
+    }
+  ],
+  "shares_outstanding": 3200000000,
+  "ownership_breakdown": {
+    "institutional_pct": 0.4412,
+    "insider_pct": 0.2256,
+    "retail_pct": 0.3332
+  },
+  "source": "demo_cache",
+  "status": "Success"
+}

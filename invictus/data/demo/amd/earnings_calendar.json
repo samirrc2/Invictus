@@ -1,0 +1,74 @@
+[
+  {
+    "symbol": "AMD",
+    "date": "2026-08-04",
+    "epsActual": null,
+    "epsEstimated": 1.6,
+    "revenueActual": null,
+    "revenueEstimated": 11245730000,
+    "lastUpdated": "2026-05-24"
+  },
+  {
+    "symbol": "AMD",
+    "date": "2026-05-05",
+    "epsActual": 1.37,
+    "epsEstimated": 1.29,
+    "revenueActual": 10253000000,
+    "revenueEstimated": 9900008000,
+    "lastUpdated": "2026-05-24"
+  },
+  {
+    "symbol": "AMD",
+    "date": "2026-02-03",
+    "epsActual": 1.53,
+    "epsEstimated": 1.32,
+    "revenueActual": 10270000000,
+    "revenueEstimated": 9668357000,
+    "lastUpdated": "2026-05-03"
+  },
+  {
+    "symbol": "AMD",
+    "date": "2025-11-04",
+    "epsActual": 1.2,
+    "epsEstimated": 1.17,
+    "revenueActual": 9246000000,
+    "revenueEstimated": 8756463065,
+    "lastUpdated": "2026-02-04"
+  },
+  {
+    "symbol": "AMD",
+    "date": "2025-08-05",
+    "epsActual": 0.48,
+    "epsEstimated": 0.4787,
+    "revenueActual": 7685000000,
+    "revenueEstimated": 7414245177,
+    "lastUpdated": "2025-11-05"
+  },
+  {
+    "symbol": "AMD",
+    "date": "2025-05-06",
+    "epsActual": 0.96,
+    "epsEstimated": 0.944,
+    "revenueActual": 7438000000,
+    "revenueEstimated": 7124413064,
+    "lastUpdated": "2025-08-06"
+  },
+  {
+    "symbol": "AMD",
+    "date": "2025-02-04",
+    "epsActual": 1.09,
+    "epsEstimated": 1.08,
+    "revenueActual": 7658000000,
+    "revenueEstimated": 7532859637,
+    "lastUpdated": "2025-05-04"
+  },
+  {
+    "symbol": "AMD",
+    "date": "2024-10-29",
+    "epsActual": 0.92,
+    "epsEstimated": 0.922,
+    "revenueActual": 6819000000,
+    "revenueEstimated": 6714743758,
+    "lastUpdated": "2025-04-25"
+  }
+]

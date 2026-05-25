@@ -24,6 +24,9 @@ analytics.db
 *.parquet
 *.json
 
+# BUT keep demo data (cached fallback for Streamlit Cloud)
+!invictus/data/demo/**/*.json
+
 # OS & IDE
 .DS_Store
 .vscode/

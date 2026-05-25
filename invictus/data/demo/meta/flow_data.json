@@ -1,0 +1,172 @@
+{
+  "institutional": [
+    {
+      "holder": "Vanguard Group Inc",
+      "shares": 178901234,
+      "pctChange": 0.01,
+      "pctChangeRaw": 0.01,
+      "value": 89806000000,
+      "pctHeld": 0.0701,
+      "pctHeldPrev": 0.0694,
+      "date_reported": "Mar 31, 2026",
+      "classification": "passive"
+    },
+    {
+      "holder": "BlackRock Inc.",
+      "shares": 148234567,
+      "pctChange": 0.005,
+      "pctChangeRaw": 0.005,
+      "value": 74413000000,
+      "pctHeld": 0.0581,
+      "pctHeldPrev": 0.0578,
+      "date_reported": "Mar 31, 2026",
+      "classification": "passive"
+    },
+    {
+      "holder": "State Street Corporation",
+      "shares": 82456789,
+      "pctChange": -0.008,
+      "pctChangeRaw": -0.008,
+      "value": 41393000000,
+      "pctHeld": 0.0323,
+      "pctHeldPrev": 0.0326,
+      "date_reported": "Mar 31, 2026",
+      "classification": "passive"
+    },
+    {
+      "holder": "FMR LLC",
+      "shares": 52345678,
+      "pctChange": 0.03,
+      "pctChangeRaw": 0.03,
+      "value": 26278000000,
+      "pctHeld": 0.0205,
+      "pctHeldPrev": 0.0199,
+      "date_reported": "Mar 31, 2026",
+      "classification": "passive"
+    },
+    {
+      "holder": "T. Rowe Price Associates",
+      "shares": 35678901,
+      "pctChange": -0.02,
+      "pctChangeRaw": -0.02,
+      "value": 17906000000,
+      "pctHeld": 0.0140,
+      "pctHeldPrev": 0.0143,
+      "date_reported": "Mar 31, 2026",
+      "classification": "smart_money"
+    },
+    {
+      "holder": "Geode Capital Management LLC",
+      "shares": 38901234,
+      "pctChange": 0.01,
+      "pctChangeRaw": 0.01,
+      "value": 19529000000,
+      "pctHeld": 0.0152,
+      "pctHeldPrev": 0.0151,
+      "date_reported": "Mar 31, 2026",
+      "classification": "passive"
+    },
+    {
+      "holder": "Capital Research Global Investors",
+      "shares": 42123456,
+      "pctChange": 0.04,
+      "pctChangeRaw": 0.04,
+      "value": 21146000000,
+      "pctHeld": 0.0165,
+      "pctHeldPrev": 0.0159,
+      "date_reported": "Mar 31, 2026",
+      "classification": "smart_money"
+    },
+    {
+      "holder": "Wellington Management Group LLP",
+      "shares": 18765432,
+      "pctChange": -0.03,
+      "pctChangeRaw": -0.03,
+      "value": 9420000000,
+      "pctHeld": 0.0074,
+      "pctHeldPrev": 0.0076,
+      "date_reported": "Mar 31, 2026",
+      "classification": "smart_money"
+    },
+    {
+      "holder": "Northern Trust Corporation",
+      "shares": 25678901,
+      "pctChange": 0.002,
+      "pctChangeRaw": 0.002,
+      "value": 12891000000,
+      "pctHeld": 0.0101,
+      "pctHeldPrev": 0.0101,
+      "date_reported": "Mar 31, 2026",
+      "classification": "passive"
+    },
+    {
+      "holder": "Citadel Advisors LLC",
+      "shares": 5678901,
+      "pctChange": 0.12,
+      "pctChangeRaw": 0.12,
+      "value": 2851000000,
+      "pctHeld": 0.0022,
+      "pctHeldPrev": 0.0020,
+      "date_reported": "Mar 31, 2026",
+      "classification": "smart_money"
+    }
+  ],
+  "insiders": [
+    {
+      "name": "ZUCKERBERG MARK",
+      "role": "Chief Executive Officer",
+      "transaction": "Sale",
+      "shares": 700000,
+      "value": 351400000,
+      "date": "Apr 18, 2026",
+      "role_weight": 3.0,
+      "shares_owned": 350000000,
+      "stake_pct": 13.72,
+      "tx_pct_of_stake": 0.2
+    },
+    {
+      "name": "ZUCKERBERG MARK",
+      "role": "Chief Executive Officer",
+      "transaction": "Sale",
+      "shares": 700000,
+      "value": 348600000,
+      "date": "Mar 28, 2026",
+      "role_weight": 3.0,
+      "shares_owned": 350000000,
+      "stake_pct": 13.72,
+      "tx_pct_of_stake": 0.2
+    },
+    {
+      "name": "WEHNER DAVID M",
+      "role": "Chief Financial Officer",
+      "transaction": "Sale",
+      "shares": 25000,
+      "value": 12550000,
+      "date": "Mar 15, 2026",
+      "role_weight": 3.0,
+      "shares_owned": 180000,
+      "stake_pct": 0.007,
+      "tx_pct_of_stake": 13.9
+    },
+    {
+      "name": "CLEGG NICK",
+      "role": "President, Global Affairs",
+      "transaction": "Sale",
+      "shares": 15000,
+      "value": 7530000,
+      "date": "Feb 25, 2026",
+      "role_weight": 2.5,
+      "shares_owned": 95000,
+      "stake_pct": 0.004,
+      "tx_pct_of_stake": 15.8
+    }
+  ],
+  "shares_outstanding": 2551000000,
+  "ownership_breakdown": {
+    "institutional_pct": 0.7856,
+    "insider_pct": 0.1394,
+    "retail_pct": 0.0750
+  },
+  "source": "demo_cache",
+  "status": "Success"
+}

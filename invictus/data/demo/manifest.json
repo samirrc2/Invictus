@@ -1,0 +1,57 @@
+{
+  "downloaded_at": "2026-05-24 15:49:28",
+  "tickers": [
+    "AAPL",
+    "AMD",
+    "META",
+    "TSLA",
+    "SMH"
+  ],
+  "summary": {
+    "AAPL": {
+      "transcripts": 0,
+      "press_releases": 0,
+      "analyst_estimates": 0,
+      "analyst_grades": 1,
+      "earnings_surprises": 0,
+      "stock_news": 20,
+      "earnings_calendar": 8
+    },
+    "AMD": {
+      "transcripts": 0,
+      "press_releases": 0,
+      "analyst_estimates": 0,
+      "analyst_grades": 1,
+      "earnings_surprises": 0,
+      "stock_news": 20,
+      "earnings_calendar": 8
+    },
+    "META": {
+      "transcripts": 0,
+      "press_releases": 0,
+      "analyst_estimates": 0,
+      "analyst_grades": 1,
+      "earnings_surprises": 0,
+      "stock_news": 20,
+      "earnings_calendar": 8
+    },
+    "TSLA": {
+      "transcripts": 0,
+      "press_releases": 0,
+      "analyst_estimates": 0,
+      "analyst_grades": 1,
+      "earnings_surprises": 0,
+      "stock_news": 20,
+      "earnings_calendar": 8
+    },
+    "SMH": {
+      "transcripts": 0,
+      "press_releases": 0,
+      "analyst_estimates": 0,
+      "analyst_grades": 0,
+      "earnings_surprises": 0,
+      "stock_news": 20,
+      "earnings_calendar": 0
+    }
+  }
+}

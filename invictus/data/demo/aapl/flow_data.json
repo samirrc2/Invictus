@@ -1,0 +1,184 @@
+{
+  "institutional": [
+    {
+      "holder": "Vanguard Group Inc",
+      "shares": 1272378901,
+      "pctChange": 0.01,
+      "pctChangeRaw": 0.01,
+      "value": 268912000000,
+      "pctHeld": 0.0831,
+      "pctHeldPrev": 0.0823,
+      "date_reported": "Mar 31, 2026",
+      "classification": "passive"
+    },
+    {
+      "holder": "BlackRock Inc.",
+      "shares": 1020145632,
+      "pctChange": -0.005,
+      "pctChangeRaw": -0.005,
+      "value": 215630000000,
+      "pctHeld": 0.0667,
+      "pctHeldPrev": 0.0670,
+      "date_reported": "Mar 31, 2026",
+      "classification": "passive"
+    },
+    {
+      "holder": "Berkshire Hathaway Inc",
+      "shares": 300000000,
+      "pctChange": -0.04,
+      "pctChangeRaw": -0.04,
+      "value": 63420000000,
+      "pctHeld": 0.0196,
+      "pctHeldPrev": 0.0204,
+      "date_reported": "Mar 31, 2026",
+      "classification": "smart_money"
+    },
+    {
+      "holder": "State Street Corporation",
+      "shares": 591543210,
+      "pctChange": 0.003,
+      "pctChangeRaw": 0.003,
+      "value": 125016000000,
+      "pctHeld": 0.0387,
+      "pctHeldPrev": 0.0386,
+      "date_reported": "Mar 31, 2026",
+      "classification": "passive"
+    },
+    {
+      "holder": "FMR LLC",
+      "shares": 350123456,
+      "pctChange": 0.02,
+      "pctChangeRaw": 0.02,
+      "value": 74006000000,
+      "pctHeld": 0.0229,
+      "pctHeldPrev": 0.0224,
+      "date_reported": "Mar 31, 2026",
+      "classification": "passive"
+    },
+    {
+      "holder": "Geode Capital Management LLC",
+      "shares": 289456123,
+      "pctChange": 0.008,
+      "pctChangeRaw": 0.008,
+      "value": 61179000000,
+      "pctHeld": 0.0189,
+      "pctHeldPrev": 0.0188,
+      "date_reported": "Mar 31, 2026",
+      "classification": "passive"
+    },
+    {
+      "holder": "T. Rowe Price Associates",
+      "shares": 178234567,
+      "pctChange": 0.05,
+      "pctChangeRaw": 0.05,
+      "value": 37667000000,
+      "pctHeld": 0.0117,
+      "pctHeldPrev": 0.0111,
+      "date_reported": "Mar 31, 2026",
+      "classification": "smart_money"
+    },
+    {
+      "holder": "Wellington Management Group LLP",
+      "shares": 112345678,
+      "pctChange": 0.03,
+      "pctChangeRaw": 0.03,
+      "value": 23749000000,
+      "pctHeld": 0.0073,
+      "pctHeldPrev": 0.0071,
+      "date_reported": "Mar 31, 2026",
+      "classification": "smart_money"
+    },
+    {
+      "holder": "Northern Trust Corporation",
+      "shares": 198765432,
+      "pctChange": -0.002,
+      "pctChangeRaw": -0.002,
+      "value": 42009000000,
+      "pctHeld": 0.0130,
+      "pctHeldPrev": 0.0130,
+      "date_reported": "Mar 31, 2026",
+      "classification": "passive"
+    },
+    {
+      "holder": "JPMorgan Chase & Co",
+      "shares": 145678901,
+      "pctChange": 0.015,
+      "pctChangeRaw": 0.015,
+      "value": 30792000000,
+      "pctHeld": 0.0095,
+      "pctHeldPrev": 0.0094,
+      "date_reported": "Mar 31, 2026",
+      "classification": "passive"
+    }
+  ],
+  "insiders": [
+    {
+      "name": "WILLIAMS JEFFREY E",
+      "role": "Chief Operating Officer",
+      "transaction": "Sale",
+      "shares": 200000,
+      "value": 42280000,
+      "date": "Apr 15, 2026",
+      "role_weight": 2.5,
+      "shares_owned": 1250000,
+      "stake_pct": 0.01,
+      "tx_pct_of_stake": 16.0
+    },
+    {
+      "name": "O'BRIEN DEIRDRE",
+      "role": "Senior Vice President",
+      "transaction": "Sale",
+      "shares": 89000,
+      "value": 18809000,
+      "date": "Apr 02, 2026",
+      "role_weight": 2.0,
+      "shares_owned": 430000,
+      "stake_pct": 0.003,
+      "tx_pct_of_stake": 20.7
+    },
+    {
+      "name": "MAESTRI LUCA",
+      "role": "Chief Financial Officer",
+      "transaction": "Sale",
+      "shares": 150000,
+      "value": 31710000,
+      "date": "Mar 20, 2026",
+      "role_weight": 3.0,
+      "shares_owned": 580000,
+      "stake_pct": 0.004,
+      "tx_pct_of_stake": 25.9
+    },
+    {
+      "name": "ADAMS KATHERINE L",
+      "role": "General Counsel",
+      "transaction": "Sale",
+      "shares": 45000,
+      "value": 9513000,
+      "date": "Mar 10, 2026",
+      "role_weight": 2.0,
+      "shares_owned": 320000,
+      "stake_pct": 0.002,
+      "tx_pct_of_stake": 14.1
+    },
+    {
+      "name": "COOK TIMOTHY D",
+      "role": "Chief Executive Officer",
+      "transaction": "Sale",
+      "shares": 500000,
+      "value": 105700000,
+      "date": "Feb 28, 2026",
+      "role_weight": 3.0,
+      "shares_owned": 3280000,
+      "stake_pct": 0.021,
+      "tx_pct_of_stake": 15.2
+    }
+  ],
+  "shares_outstanding": 15305100000,
+  "ownership_breakdown": {
+    "institutional_pct": 0.6123,
+    "insider_pct": 0.0268,
+    "retail_pct": 0.3609
+  },
+  "source": "demo_cache",
+  "status": "Success"
+}

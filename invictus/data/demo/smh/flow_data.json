@@ -1,0 +1,123 @@
+{
+  "institutional": [
+    {
+      "holder": "Vanguard Group Inc",
+      "shares": 45678901,
+      "pctChange": 0.02,
+      "pctChangeRaw": 0.02,
+      "value": 12389000000,
+      "pctHeld": 0.0912,
+      "pctHeldPrev": 0.0894,
+      "date_reported": "Mar 31, 2026",
+      "classification": "passive"
+    },
+    {
+      "holder": "BlackRock Inc.",
+      "shares": 38901234,
+      "pctChange": 0.015,
+      "pctChangeRaw": 0.015,
+      "value": 10550000000,
+      "pctHeld": 0.0777,
+      "pctHeldPrev": 0.0765,
+      "date_reported": "Mar 31, 2026",
+      "classification": "passive"
+    },
+    {
+      "holder": "State Street Corporation",
+      "shares": 22345678,
+      "pctChange": 0.01,
+      "pctChangeRaw": 0.01,
+      "value": 6056000000,
+      "pctHeld": 0.0446,
+      "pctHeldPrev": 0.0442,
+      "date_reported": "Mar 31, 2026",
+      "classification": "passive"
+    },
+    {
+      "holder": "JPMorgan Chase & Co",
+      "shares": 15678901,
+      "pctChange": 0.05,
+      "pctChangeRaw": 0.05,
+      "value": 4249000000,
+      "pctHeld": 0.0313,
+      "pctHeldPrev": 0.0298,
+      "date_reported": "Mar 31, 2026",
+      "classification": "passive"
+    },
+    {
+      "holder": "Citadel Advisors LLC",
+      "shares": 4567890,
+      "pctChange": 0.25,
+      "pctChangeRaw": 0.25,
+      "value": 1238000000,
+      "pctHeld": 0.0091,
+      "pctHeldPrev": 0.0073,
+      "date_reported": "Mar 31, 2026",
+      "classification": "smart_money"
+    },
+    {
+      "holder": "Millennium Management LLC",
+      "shares": 3456789,
+      "pctChange": 0.18,
+      "pctChangeRaw": 0.18,
+      "value": 937000000,
+      "pctHeld": 0.0069,
+      "pctHeldPrev": 0.0058,
+      "date_reported": "Mar 31, 2026",
+      "classification": "smart_money"
+    },
+    {
+      "holder": "Wellington Management Group LLP",
+      "shares": 8901234,
+      "pctChange": 0.04,
+      "pctChangeRaw": 0.04,
+      "value": 2413000000,
+      "pctHeld": 0.0178,
+      "pctHeldPrev": 0.0171,
+      "date_reported": "Mar 31, 2026",
+      "classification": "smart_money"
+    },
+    {
+      "holder": "FMR LLC",
+      "shares": 12345678,
+      "pctChange": 0.03,
+      "pctChangeRaw": 0.03,
+      "value": 3348000000,
+      "pctHeld": 0.0247,
+      "pctHeldPrev": 0.0240,
+      "date_reported": "Mar 31, 2026",
+      "classification": "passive"
+    },
+    {
+      "holder": "Northern Trust Corporation",
+      "shares": 7890123,
+      "pctChange": 0.005,
+      "pctChangeRaw": 0.005,
+      "value": 2139000000,
+      "pctHeld": 0.0158,
+      "pctHeldPrev": 0.0157,
+      "date_reported": "Mar 31, 2026",
+      "classification": "passive"
+    },
+    {
+      "holder": "Two Sigma Investments LP",
+      "shares": 2345678,
+      "pctChange": 0.30,
+      "pctChangeRaw": 0.30,
+      "value": 636000000,
+      "pctHeld": 0.0047,
+      "pctHeldPrev": 0.0036,
+      "date_reported": "Mar 31, 2026",
+      "classification": "smart_money"
+    }
+  ],
+  "insiders": [],
+  "shares_outstanding": 500700000,
+  "ownership_breakdown": {
+    "institutional_pct": 0.5234,
+    "insider_pct": 0.0,
+    "retail_pct": 0.4766
+  },
+  "source": "demo_cache",
+  "status": "Success"
+}

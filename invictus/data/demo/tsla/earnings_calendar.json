@@ -1,0 +1,74 @@
+[
+  {
+    "symbol": "TSLA",
+    "date": "2026-07-22",
+    "epsActual": null,
+    "epsEstimated": 0.45,
+    "revenueActual": null,
+    "revenueEstimated": 24277910000,
+    "lastUpdated": "2026-05-24"
+  },
+  {
+    "symbol": "TSLA",
+    "date": "2026-04-22",
+    "epsActual": 0.41,
+    "epsEstimated": 0.3539,
+    "revenueActual": 22387000000,
+    "revenueEstimated": 22100780000,
+    "lastUpdated": "2026-05-24"
+  },
+  {
+    "symbol": "TSLA",
+    "date": "2026-01-28",
+    "epsActual": 0.5,
+    "epsEstimated": 0.4548,
+    "revenueActual": 24901000000,
+    "revenueEstimated": 24776440000,
+    "lastUpdated": "2026-04-28"
+  },
+  {
+    "symbol": "TSLA",
+    "date": "2025-10-22",
+    "epsActual": 0.5,
+    "epsEstimated": 0.558,
+    "revenueActual": 28095000000,
+    "revenueEstimated": 26540367719,
+    "lastUpdated": "2026-01-22"
+  },
+  {
+    "symbol": "TSLA",
+    "date": "2025-07-23",
+    "epsActual": 0.4,
+    "epsEstimated": 0.3972,
+    "revenueActual": 22496000000,
+    "revenueEstimated": 22279678348,
+    "lastUpdated": "2025-10-23"
+  },
+  {
+    "symbol": "TSLA",
+    "date": "2025-04-22",
+    "epsActual": 0.27,
+    "epsEstimated": 0.4136,
+    "revenueActual": 19335000000,
+    "revenueEstimated": 21269497845,
+    "lastUpdated": "2025-07-22"
+  },
+  {
+    "symbol": "TSLA",
+    "date": "2025-01-29",
+    "epsActual": 0.73,
+    "epsEstimated": 0.774,
+    "revenueActual": 25707000000,
+    "revenueEstimated": 27258924570,
+    "lastUpdated": "2025-04-29"
+  },
+  {
+    "symbol": "TSLA",
+    "date": "2024-10-23",
+    "epsActual": 0.72,
+    "epsEstimated": 0.58,
+    "revenueActual": 25182000000,
+    "revenueEstimated": 25468371161,
+    "lastUpdated": "2025-04-25"
+  }
+]
