@@ -249,7 +249,7 @@ def run_earnings_intel(state: PortfolioState) -> PortfolioState:
 
         # Try LLM first, fall back to dictionary
         llm_result = _analyze_sentiment_with_llm(ticker, context)
-        if llm_result.get("status") == "Success":
+        if llm_result and llm_result.get("status") == "Success":
             results[ticker] = llm_result
         else:
             # Dictionary fallback — always works

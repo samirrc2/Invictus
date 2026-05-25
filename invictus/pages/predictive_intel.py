@@ -119,7 +119,7 @@ def render(sub):
                 progress.progress((step + 1) / total, text=f"Management Intelligence: {t}")
                 ctx = _fetch_yfinance_sentiment_context(t)
                 result = _analyze_sentiment_with_llm(t, ctx)
-                pi_earnings[t] = result if result.get("status") == "Success" else _dictionary_sentiment(ctx)
+                pi_earnings[t] = result if (result and result.get("status") == "Success") else _dictionary_sentiment(ctx)
                 step += 1
                 progress.progress((step + 1) / total, text=f"Capital Flows: {t}")
                 raw_flow = _fetch_flow_data(t)

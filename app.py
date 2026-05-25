@@ -416,7 +416,7 @@ if load_btn:
                     else:
                         ctx = _fetch_yfinance_sentiment_context(t)
                         result = _analyze_sentiment_with_llm(t, ctx)
-                        pi_earnings[t] = result if result.get("status") == "Success" else _dictionary_sentiment(ctx)
+                        pi_earnings[t] = result if (result and result.get("status") == "Success") else _dictionary_sentiment(ctx)
 
                     if st.session_state.flow_signals and t in st.session_state.flow_signals.get("intel", {}):
                         pi_flows[t] = st.session_state.flow_signals["intel"][t]
