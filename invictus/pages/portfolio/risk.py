@@ -15,7 +15,7 @@ from invictus.pages.portfolio._shared import (
 
 def render():
     """Render the Risk Analytics sub-tab."""
-    if not st.session_state.risk_state:
+    if not st.session_state.risk_state or not st.session_state.risk_state.get("risk_metrics"):
         st.info("Load portfolio to view risk analytics.")
         return
 

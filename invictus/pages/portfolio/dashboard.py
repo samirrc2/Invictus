@@ -44,7 +44,7 @@ def render():
 
     # Health indicators row
     h1, h2, h3, h4, h5 = st.columns(5)
-    if risk_s:
+    if risk_s and risk_s.get("risk_metrics"):
         rm = risk_s["risk_metrics"]
         vol = rm.get("annualized_volatility", 0)
         dd = abs(rm.get("max_drawdown", 0))

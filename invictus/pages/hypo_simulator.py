@@ -56,7 +56,7 @@ def render(sub):
 
     # Key context metrics
     ctx1, ctx2, ctx3, ctx4, ctx5 = st.columns(5)
-    rm = risk_s["risk_metrics"] if risk_s else {}
+    rm = risk_s.get("risk_metrics") or {} if risk_s else {}
 
     with ctx1: render_metric_card("Portfolio Value", fmt_currency(ps["total_value"]))
     with ctx2: render_metric_card("Positions", str(len(summary)))
