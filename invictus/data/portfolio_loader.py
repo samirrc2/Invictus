@@ -99,6 +99,12 @@ def fetch_price_history(
         prices.columns = all_tickers
 
     prices = prices.dropna(how="all").ffill()
+    if prices.empty:
+        raise ValueError(
+            f"yfinance returned no price data for {all_tickers}. "
+            f"This can happen on Streamlit Cloud due to network restrictions or market hours. "
+            f"Try again in a few minutes."
+        )
     return prices
 
 
