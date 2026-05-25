@@ -10,11 +10,25 @@ from invictus.pages.dev_analytics._shared import subtitle, conviction_card, heal
 
 
 def render_session_analytics():
+    # ── Pipeline Error Log (always visible if errors exist) ──────
+    errors = st.session_state.get("pipeline_errors", [])
+    if errors:
+        render_section_header("Pipeline Error Log")
+        subtitle(
+            f'<span style="color:#ef4444;font-weight:700;">{len(errors)} error(s)</span> '
+            f'captured from the last pipeline run. Full tracebacks shown below.'
+        )
+        for i, err in enumerate(errors):
+            with st.expander(f"Error {i + 1}: {err[:80].split(chr(10))[0]}", expanded=(i == 0)):
+                st.code(err, language="python")
+        st.markdown('<div style="margin-bottom:16px;"></div>', unsafe_allow_html=True)
+
     from invictus.observability.analyzers.calibration import analyze_session_analytics
 
     sa = analyze_session_analytics()
     if sa.get("status") == "no_data":
-        st.info("No session data collected yet.")
+        if not errors:
+            st.info("No session data collected yet.")
         return
 
     # ── Verdict Summary ───────────────────────────────────────────

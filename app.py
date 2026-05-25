@@ -56,6 +56,7 @@ for key, default in {
     "hypo_results": None,
     "agent_status": {},
     "pipeline_running": False,
+    "pipeline_errors": [],
     "nav_primary": "Portfolio Intelligence",
     "nav_sub": "Overview",
     "show_landing": True,
@@ -363,6 +364,7 @@ if load_btn:
                     log_agent_run(node_name, _run_id, "success", elapsed)
 
             if pstate.errors:
+                st.session_state.pipeline_errors = list(pstate.errors)
                 for err_str in pstate.errors:
                     if err_str.startswith("[") and "]" in err_str:
                         err_node = err_str[1:err_str.index("]")]
@@ -486,7 +488,11 @@ if load_btn:
             st.session_state.show_landing = False
             st.rerun()
         except Exception as e:
+            import traceback as _tb
             st.session_state.pipeline_running = False
+            st.session_state.pipeline_errors = st.session_state.get("pipeline_errors", []) + [
+                f"[FATAL] {type(e).__name__}: {e}\n{_tb.format_exc()}"
+            ]
             status_ui.update(label=f"Pipeline error: {e}", state="error")
             st.error(f"Execution Error: {e}")
 

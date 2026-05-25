@@ -69,7 +69,7 @@ def compute_before_after(
     Returns:
         Dict with before/after metrics and deltas.
     """
-    rm = current_risk["risk_metrics"]
+    rm = (current_risk or {}).get("risk_metrics") or {}
 
     # ── Before metrics (from existing risk state) ──
     before = {
