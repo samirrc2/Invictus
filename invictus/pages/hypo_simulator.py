@@ -99,13 +99,14 @@ def render(sub):
             )
 
     # Per-stock $ input + simulate button
+    _demo_default = 5000.0 if st.session_state.get("_demo_confirmed") else 0.0
     n = len(pi_tickers)
     input_cols = st.columns(n + 1)
     investment_amounts = {}
     for i, ticker in enumerate(pi_tickers):
         with input_cols[i]:
             val = st.number_input(
-                f"{ticker} ($)", min_value=0.0, value=0.0,
+                f"{ticker} ($)", min_value=0.0, value=_demo_default,
                 step=500.0, format="%.0f", key=f"hypo_amt_{ticker}",
             )
             investment_amounts[ticker] = val

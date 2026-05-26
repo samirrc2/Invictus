@@ -39,7 +39,7 @@ def render(sub: str):
     with enter_col:
         new_input = st.text_input(
             "Enter tickers", placeholder="NVDA, AMZN, TSLA",
-            key="pi_new_ticker_input", help="Comma-separated. Max 3 total (portfolio + new).",
+            key="pi_new_ticker_input",
         )
     with btn_col:
         st.markdown("<div style='height:28px;'></div>", unsafe_allow_html=True)
@@ -47,6 +47,14 @@ def render(sub: str):
         all_selected = list(dict.fromkeys(picked + new_raw))[:3]
         run_btn = st.button("Run Intel", key="pi_run_btn", type="primary",
                             use_container_width=True, disabled=len(all_selected) == 0)
+
+    _count = len(all_selected)
+    st.markdown(
+        f'<div style="font-size:11px;color:#94a3b8;margin:-8px 0 8px 0;">'
+        f'Pick from portfolio or enter new — max 3 tickers combined '
+        f'({_count}/3 selected)</div>',
+        unsafe_allow_html=True,
+    )
 
     # ── Run Pipeline ─────────────────────────────────────────────
     if run_btn and all_selected:

@@ -67,7 +67,7 @@ def render():
 
         # Instructional hint above the navigation pills
         st.markdown(
-            f'<div style="text-align:center;font-size:12px;color:#94a3b8;'
+            f'<div style="text-align:left;font-size:12px;color:#94a3b8;'
             f'font-weight:600;letter-spacing:0.02em;margin:0 0 8px 0;">'
             f'Click on each section below to understand how Invictus works</div>',
             unsafe_allow_html=True,

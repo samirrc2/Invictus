@@ -541,7 +541,6 @@ def _fetch_flow_data(ticker: str) -> Dict[str, Any]:
                 _log.info("Flow: %s — yfinance empty, using demo cache", ticker)
                 demo["source"] = "demo_cache"
                 demo["status"] = "Success"
-                # Log demo fallback to observability
                 try:
                     from invictus.observability.store import insert, generate_run_id
                     insert("data_health", {
@@ -556,6 +555,19 @@ def _fetch_flow_data(ticker: str) -> Dict[str, Any]:
                 except Exception:
                     pass
                 return demo
+
+        # ── Partial fallback: institutional data from demo cache ──
+        # On Streamlit Cloud, yfinance institutional_holders is often
+        # rate-limited (returns empty) while FMP insiders succeed.
+        # Without this, fund_accumulation and concentration score as 0.
+        if not inst_list:
+            demo = _load_demo_flow_data(ticker)
+            if demo and demo.get("institutional"):
+                inst_list = demo["institutional"]
+                ownership_breakdown = demo.get("ownership_breakdown", ownership_breakdown)
+                shares_outstanding = demo.get("shares_outstanding", shares_outstanding) or shares_outstanding
+                _log.info("Flow: %s — backfilled %d institutional holders from demo cache",
+                          ticker, len(inst_list))
 
         _log.info("Flow fetch %s: status=%s, inst=%d, ins=%d, %.0fms",
                   ticker, _status, len(inst_list), len(insider_list), _latency)
