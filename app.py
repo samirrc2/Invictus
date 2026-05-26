@@ -60,6 +60,7 @@ for key, default in {
     "nav_primary": "Portfolio Intelligence",
     "nav_sub": "Overview",
     "show_landing": True,
+    "_demo_confirmed": False,
 }.items():
     if key not in st.session_state:
         st.session_state[key] = default
@@ -285,10 +286,47 @@ if _csv_checked:
             upload_method = "Upload CSV"
             st.caption("AI will automatically extract Ticker, Shares, and Cost Basis from your CSV — no manual mapping needed.")
 
-# Demo Mode — direct trigger (no dialog on first click, confirm inline)
+# Demo Mode — show confirmation dialog
+@st.dialog("Entering Demo Mode")
+def _demo_dialog():
+    st.markdown(
+        '<div style="font-size:14px;color:#334155;line-height:1.7;margin:4px 0 20px 0;">'
+        'Demo Mode loads a sample portfolio and runs the full '
+        '<b>14-agent Invictus pipeline</b> so you can explore every feature — '
+        'risk analytics, conviction scoring, stress tests, and more. '
+        'Feel free to play around!</div>',
+        unsafe_allow_html=True,
+    )
+    c1, c2 = st.columns(2)
+    with c1:
+        if st.button("Cancel", key="demo_cancel", use_container_width=True):
+            st.rerun()
+    with c2:
+        if st.button("Let's do this", key="demo_confirm", use_container_width=True, type="primary"):
+            st.session_state._demo_confirmed = True
+            st.rerun()
+
 if demo_btn:
+    _demo_dialog()
+
+# Trigger pipeline after demo confirmation
+if st.session_state.get("_demo_confirmed"):
+    del st.session_state._demo_confirmed
     load_btn = True
     demo_mode = True
+
+# ══════════════════════════════════════════════════════════════════════
+# CSV UPLOAD GATE — redirect to Demo Mode
+# ══════════════════════════════════════════════════════════════════════
+if load_btn and upload_method == "Upload CSV" and uploaded_file and not demo_mode:
+    st.warning(
+        "**We've hit the API call and token limit for today.** "
+        "Custom portfolio uploads are temporarily unavailable, but you can click on "
+        "**Demo Mode** to explore Invictus with a sample portfolio — "
+        "all 14 agents, full analytics, zero restrictions.",
+        icon="⚠️",
+    )
+    load_btn = False
 
 # ══════════════════════════════════════════════════════════════════════
 # PIPELINE — Load Portfolio + Run Agents

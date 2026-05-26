@@ -91,15 +91,12 @@ import yfinance as yf
 
 from invictus.config import FMP_API_KEY, DATA_DIR
 from invictus.llm import call_llm_json_raw, llm_available, get_provider
+from invictus.fmp_client import (
+    fetch_stock_news, fetch_analyst_grades, fetch_earnings_calendar,
+    fmp_available,
+)
 
 _log = logging.getLogger(__name__)
-
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# DEV MODE TOGGLE
-# Set to False to switch from demo folder to live FMP API calls.
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-USE_DEMO_DATA = True   # <-- flip to False when moving to production
 
 DEMO_DIR = DATA_DIR / "demo"
 
@@ -120,8 +117,8 @@ assert abs(sum(DIMENSION_WEIGHTS.values()) - 1.0) < 1e-9, "Dimension weights mus
 
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# DATA FETCHERS — DEMO MODE
-# Reads pre-downloaded JSON from invictus/data/demo/<ticker>/
+# DATA FETCHERS — LIVE FMP + DEMO FALLBACK
+# Tries FMP API live first, falls back to cached demo JSON when unavailable
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 def _load_demo_json(ticker: str, filename: str) -> Any:
@@ -139,41 +136,65 @@ def _load_demo_json(ticker: str, filename: str) -> Any:
         return []
 
 
-def _fetch_fmp_stock_news_demo(ticker: str) -> List[Dict[str, Any]]:
-    """Load FMP stock news from demo folder."""
+def _fetch_fmp_stock_news_live(ticker: str) -> List[Dict[str, Any]]:
+    """
+    Fetch stock news from FMP live API.
+    Falls back to demo cache if FMP unavailable.
+    """
     _start = _t.perf_counter()
-    raw = _load_demo_json(ticker, "stock_news.json")
     articles = []
+
+    # Try live FMP first
+    raw = fetch_stock_news(ticker, limit=20)
+    source_tag = "FMP Live"
+    if not raw:
+        # Fallback to demo cache
+        raw = _load_demo_json(ticker, "stock_news.json")
+        source_tag = "FMP Demo"
+        if not isinstance(raw, list):
+            raw = []
+
     if isinstance(raw, list):
         for item in raw:
             title = item.get("title", "")
             text = item.get("text", "")
             date = item.get("publishedDate", "")
-            publisher = item.get("publisher", "")
+            publisher = item.get("site", item.get("publisher", ""))
             if title:
                 articles.append({
                     "title": title,
                     "text": text[:2000],
                     "date": date,
                     "publisher": publisher,
-                    "source": "FMP Stock News",
+                    "source": f"FMP Stock News ({source_tag})",
                 })
+
     _log_data_health("fmp_stock_news", ticker,
                      "success" if articles else "no_data",
                      _t.perf_counter() - _start, len(articles))
     return articles
 
 
-def _fetch_fmp_analyst_grades_demo(ticker: str) -> Dict[str, Any]:
-    """Load FMP analyst grade consensus from demo folder."""
+def _fetch_fmp_analyst_grades_live(ticker: str) -> Dict[str, Any]:
+    """Fetch analyst grade consensus from FMP live, demo fallback."""
+    grades = fetch_analyst_grades(ticker)
+    if grades and grades.get("symbol"):
+        return grades
+    # Fallback to demo
     raw = _load_demo_json(ticker, "analyst_grades.json")
     if isinstance(raw, list) and raw:
         return raw[0]
+    if isinstance(raw, dict):
+        return raw
     return {}
 
 
-def _fetch_fmp_earnings_demo(ticker: str) -> List[Dict[str, Any]]:
-    """Load FMP earnings calendar (EPS beat/miss) from demo folder."""
+def _fetch_fmp_earnings_live(ticker: str) -> List[Dict[str, Any]]:
+    """Fetch earnings calendar from FMP live, demo fallback."""
+    data = fetch_earnings_calendar(ticker, limit=8)
+    if data:
+        return data
+    # Fallback to demo
     raw = _load_demo_json(ticker, "earnings_calendar.json")
     return raw if isinstance(raw, list) else []
 
@@ -309,15 +330,15 @@ def _build_earnings_context(earnings: List[Dict], grades: Dict) -> str:
 
 def fetch_outlook_data(ticker: str) -> Dict[str, Any]:
     """
-    Master fetcher — pulls from demo folder (FMP) + live yfinance and assembles
-    context for LLM signal extraction.
+    Master fetcher — pulls FMP live data (with demo fallback) + yfinance
+    and assembles context for LLM signal extraction.
 
-    DEV MODE (USE_DEMO_DATA=True):
-        Reads from invictus/data/demo/<ticker>/ — pre-downloaded via
-        scripts/download_fmp_demo.py
-
-    PRODUCTION MODE (USE_DEMO_DATA=False):
-        Hits FMP API live (requires FMP_API_KEY in .env)
+    Strategy:
+        - Stock news, analyst grades, earnings calendar → FMP live API
+          (falls back to demo cache if FMP unavailable)
+        - Transcripts, press releases → demo cache only
+          (require FMP Ultimate plan, not available on current plan)
+        - yfinance news → always live as supplementary source
 
     Returns:
         {
@@ -333,12 +354,14 @@ def fetch_outlook_data(ticker: str) -> Dict[str, Any]:
             "status": "Success" | "Partial" | "NoData",
         }
     """
-    # ── FMP data (from demo folder) ──
-    fmp_news = _fetch_fmp_stock_news_demo(ticker)
+    # ── FMP data (live API with demo fallback) ──
+    fmp_news = _fetch_fmp_stock_news_live(ticker)
+    grades = _fetch_fmp_analyst_grades_live(ticker)
+    earnings = _fetch_fmp_earnings_live(ticker)
+
+    # ── Restricted endpoints — demo cache only ──
     transcripts = _fetch_fmp_transcripts_demo(ticker)
     press_releases = _fetch_fmp_press_releases_demo(ticker)
-    grades = _fetch_fmp_analyst_grades_demo(ticker)
-    earnings = _fetch_fmp_earnings_demo(ticker)
 
     # ── yfinance (always live) ──
     yf_news = _fetch_yfinance_news(ticker)

@@ -2,7 +2,9 @@
 Invictus — Capital Flow Intelligence Agent (v4)
 
 Institutional-grade analysis of capital movements around equity positions.
-Uses yfinance as the primary data source for institutional holders and insider transactions.
+Uses FMP as the primary source for insider transactions, yfinance for
+institutional holders (FMP inst. ownership requires higher plan).
+Falls back to cached demo data on Streamlit Cloud when APIs are unavailable.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -81,6 +83,7 @@ _log = logging.getLogger(__name__)
 _DEMO_DIR = Path(__file__).resolve().parent.parent / "data" / "demo"
 
 from invictus.agents.graph_state import PortfolioState
+from invictus.fmp_client import fetch_insider_trading, fmp_available
 
 # ══════════════════════════════════════════════════════════════════════════
 # CLASSIFICATION CONSTANTS
@@ -391,25 +394,49 @@ def _fetch_flow_data(ticker: str) -> Dict[str, Any]:
             _log.warning("Flow: %s institutional_holders fetch failed: %s", ticker, e)
 
         # ── 3. Insider Transactions ──
+        # Try FMP first (more reliable, structured data), fall back to yfinance
         insider_list = []
+        _insider_source = "yfinance"
         try:
-            insiders = t.insider_transactions
-            if insiders is not None and not insiders.empty:
-                for _, row in insiders.iterrows():
-                    insider_name = _safe_col(row, ["Insider", "insider", "Insider Trading"], "Unknown")
-                    position = _safe_col(row, ["Position", "position", "Title"], "Officer")
-                    text = _safe_col(row, ["Text", "text", "Transaction", "transaction"], "")
-                    shares_tx = float(_safe_col(row, ["Shares", "shares"], 0))
-                    value = float(_safe_col(row, ["Value", "value"], 0))
-                    date = _safe_col(row, ["Start Date", "startDate", "Date", "date"], "")
+            fmp_insiders = fetch_insider_trading(ticker, limit=100) if fmp_available() else []
+            if fmp_insiders:
+                # ── FMP insider data path ──
+                _insider_source = "fmp"
+                for tx in fmp_insiders:
+                    insider_name = tx.get("reportingName", "Unknown")
+                    tx_type = tx.get("transactionType", "")
+                    shares_tx = float(tx.get("securitiesTransacted", 0) or 0)
+                    price = float(tx.get("price", 0) or 0)
+                    value = shares_tx * price if price > 0 else 0
+                    shares_owned_after = float(tx.get("securitiesOwned", 0) or 0)
+                    tx_date = tx.get("transactionDate", tx.get("filingDate", ""))
+
+                    # Infer role from typeOfOwner field
+                    owner_type = tx.get("typeOfOwner", "officer")
+                    if "director" in str(owner_type).lower():
+                        position = "Director"
+                    elif "officer" in str(owner_type).lower() or "10" in str(owner_type):
+                        position = "Officer"
+                    else:
+                        position = str(owner_type) if owner_type else "Officer"
+
+                    # Map FMP transaction types to readable text
+                    # FMP uses: "P-Purchase", "S-Sale", "A-Award", "M-Exempt", etc.
+                    if tx_type.startswith("P"):
+                        text = "Purchase"
+                    elif tx_type.startswith("S"):
+                        text = "Sale"
+                    elif tx_type.startswith("A"):
+                        text = "Award/Grant"
+                    elif tx_type.startswith("M"):
+                        text = "Exercise"
+                    else:
+                        text = tx_type
 
                     # Cross-reference with insider roster for stake context
-                    # Transactions use "LI SUSAN J." — roster uses "Susan Li"
-                    # Strategy: exact match → surname index → word overlap
                     name_key = str(insider_name).lower().strip().replace(".", "")
                     roster_entry = insider_roster.get(name_key, {})
                     if not roster_entry:
-                        # Try surname index: "li susan j" → try "li", then "susan", then "j"
                         name_parts = name_key.split()
                         for part in name_parts:
                             if len(part) > 1 and part in _surname_index:
@@ -417,35 +444,88 @@ def _fetch_flow_data(ticker: str) -> Dict[str, Any]:
                                 roster_entry = insider_roster.get(matched_key, {})
                                 if roster_entry:
                                     break
+
+                    # Use FMP's securitiesOwned if roster lookup fails
                     shares_owned = roster_entry.get("shares_owned", 0)
+                    if shares_owned == 0 and shares_owned_after > 0:
+                        shares_owned = shares_owned_after
 
                     # Compute stake percentages
-                    # stake_pct = insider's total holding as % of company
                     stake_pct = (shares_owned / shares_outstanding * 100) if shares_outstanding > 0 and shares_owned > 0 else 0
-                    # tx_pct_of_stake = this transaction as % of insider's total holding
                     tx_pct_of_stake = (shares_tx / shares_owned * 100) if shares_owned > 0 else 0
 
-                    # Format date cleanly
-                    date_str = str(date)
+                    # Use roster position if available (more descriptive)
+                    if roster_entry.get("position"):
+                        position = roster_entry["position"]
+
+                    # Format date
+                    date_str = str(tx_date)
                     try:
-                        dt = pd.to_datetime(date)
-                        date_str = dt.strftime("%b %d, %Y") if not pd.isna(dt) else str(date)
+                        dt = pd.to_datetime(tx_date)
+                        date_str = dt.strftime("%b %d, %Y") if not pd.isna(dt) else str(tx_date)
                     except Exception:
                         pass
 
                     insider_list.append({
                         "name": str(insider_name),
-                        "role": str(position) or roster_entry.get("position", "Officer"),
+                        "role": str(position),
                         "transaction": str(text),
                         "shares": shares_tx,
                         "value": value,
                         "date": date_str,
                         "role_weight": _get_role_weight(str(position)),
-                        # Enriched stake context
                         "shares_owned": shares_owned,
-                        "stake_pct": round(stake_pct, 2),      # e.g. 14.2 (%)
-                        "tx_pct_of_stake": round(tx_pct_of_stake, 1),  # e.g. 1.3 (%)
+                        "stake_pct": round(stake_pct, 2),
+                        "tx_pct_of_stake": round(tx_pct_of_stake, 1),
                     })
+                _log.info("Flow: %s insider data from FMP (%d transactions)", ticker, len(insider_list))
+            else:
+                # ── yfinance fallback path ──
+                insiders = t.insider_transactions
+                if insiders is not None and not insiders.empty:
+                    for _, row in insiders.iterrows():
+                        insider_name = _safe_col(row, ["Insider", "insider", "Insider Trading"], "Unknown")
+                        position = _safe_col(row, ["Position", "position", "Title"], "Officer")
+                        text = _safe_col(row, ["Text", "text", "Transaction", "transaction"], "")
+                        shares_tx = float(_safe_col(row, ["Shares", "shares"], 0))
+                        value = float(_safe_col(row, ["Value", "value"], 0))
+                        date = _safe_col(row, ["Start Date", "startDate", "Date", "date"], "")
+
+                        # Cross-reference with insider roster for stake context
+                        name_key = str(insider_name).lower().strip().replace(".", "")
+                        roster_entry = insider_roster.get(name_key, {})
+                        if not roster_entry:
+                            name_parts = name_key.split()
+                            for part in name_parts:
+                                if len(part) > 1 and part in _surname_index:
+                                    matched_key = _surname_index[part]
+                                    roster_entry = insider_roster.get(matched_key, {})
+                                    if roster_entry:
+                                        break
+                        shares_owned = roster_entry.get("shares_owned", 0)
+
+                        stake_pct = (shares_owned / shares_outstanding * 100) if shares_outstanding > 0 and shares_owned > 0 else 0
+                        tx_pct_of_stake = (shares_tx / shares_owned * 100) if shares_owned > 0 else 0
+
+                        date_str = str(date)
+                        try:
+                            dt = pd.to_datetime(date)
+                            date_str = dt.strftime("%b %d, %Y") if not pd.isna(dt) else str(date)
+                        except Exception:
+                            pass
+
+                        insider_list.append({
+                            "name": str(insider_name),
+                            "role": str(position) or roster_entry.get("position", "Officer"),
+                            "transaction": str(text),
+                            "shares": shares_tx,
+                            "value": value,
+                            "date": date_str,
+                            "role_weight": _get_role_weight(str(position)),
+                            "shares_owned": shares_owned,
+                            "stake_pct": round(stake_pct, 2),
+                            "tx_pct_of_stake": round(tx_pct_of_stake, 1),
+                        })
         except Exception as e:
             _log.warning("Flow: %s insider_transactions fetch failed: %s", ticker, e)
 
@@ -498,7 +578,7 @@ def _fetch_flow_data(ticker: str) -> Dict[str, Any]:
             "insiders": insider_list,
             "shares_outstanding": shares_outstanding,
             "ownership_breakdown": ownership_breakdown,
-            "source": "yfinance",
+            "source": f"yfinance+{_insider_source}" if _insider_source == "fmp" else "yfinance",
             "status": _status,
         }
     except Exception as e:

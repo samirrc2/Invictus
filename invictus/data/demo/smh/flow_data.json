@@ -84,7 +84,7 @@
       "pctChangeRaw": 0.03,
       "value": 3348000000,
       "pctHeld": 0.0247,
-      "pctHeldPrev": 0.0240,
+      "pctHeldPrev": 0.024,
       "date_reported": "Mar 31, 2026",
       "classification": "passive"
     },
@@ -102,8 +102,8 @@
     {
       "holder": "Two Sigma Investments LP",
       "shares": 2345678,
-      "pctChange": 0.30,
-      "pctChangeRaw": 0.30,
+      "pctChange": 0.3,
+      "pctChangeRaw": 0.3,
       "value": 636000000,
       "pctHeld": 0.0047,
       "pctHeldPrev": 0.0036,

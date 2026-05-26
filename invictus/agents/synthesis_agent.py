@@ -181,7 +181,7 @@ def _assess_signal_quality(
     f_status_flow = flows.get("status", "")
     if f_status_flow == "Success":
         source = flows.get("source", "")
-        quality["flows"] = 0.8 if source in ("finnhub", "fmp") else 0.4
+        quality["flows"] = 0.8 if ("fmp" in source or "finnhub" in source) else 0.4
     else:
         quality["flows"] = 0.1
 

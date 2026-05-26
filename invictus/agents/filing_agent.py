@@ -1,7 +1,8 @@
 """
 Invictus — Fundamental Intelligence Agent (v3)
-Uses yfinance financials as the primary source for growth and margin signals.
-Replaces unreliable SEC text extraction with quantitative institutional metrics.
+Uses FMP income statements as the primary source for growth and margin signals,
+with yfinance financials as fallback. FMP returns structured quarterly JSON
+(revenue, netIncome, operatingIncome, grossProfit) — cleaner than yfinance DataFrames.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -37,6 +38,7 @@ OUTPUT SIGNALS (consumed by synthesis_agent.py)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 """
+import logging
 import yfinance as yf
 import numpy as np
 import pandas as pd
@@ -44,7 +46,10 @@ from typing import Dict, Any, List, Optional
 import streamlit as st
 
 from invictus.agents.graph_state import PortfolioState
+from invictus.fmp_client import fetch_income_statements, fmp_available
 # LLM calls go through invictus.llm — no direct API key imports needed
+
+_log = logging.getLogger(__name__)
 
 
 def _find_row(df: pd.DataFrame, keywords: List[str]) -> Optional[pd.Series]:
@@ -70,8 +75,123 @@ def _safe_growth(current, previous) -> float:
         return 0.0
 
 
+def _extract_fmp_fundamental_signals(ticker: str) -> Optional[Dict[str, Any]]:
+    """
+    Fetches quantitative fundamental signals using FMP income statements.
+    Returns None if FMP is unavailable, so caller can fall back to yfinance.
+
+    FMP income-statement returns structured JSON with:
+        revenue, netIncome, operatingIncome, grossProfit, grossProfitRatio,
+        operatingIncomeRatio, netIncomeRatio, etc.
+    """
+    if not fmp_available():
+        return None
+
+    statements = fetch_income_statements(ticker, limit=4, period="quarter")
+    if not statements or len(statements) < 2:
+        return None
+
+    try:
+        # FMP returns newest first
+        latest = statements[0]
+        prev = statements[1]
+
+        rev_curr = float(latest.get("revenue", 0) or 0)
+        rev_prev = float(prev.get("revenue", 0) or 0)
+        net_curr = float(latest.get("netIncome", 0) or 0)
+        net_prev = float(prev.get("netIncome", 0) or 0)
+        op_curr = float(latest.get("operatingIncome", 0) or 0)
+        op_prev = float(prev.get("operatingIncome", 0) or 0)
+        gp_curr = float(latest.get("grossProfit", 0) or 0)
+
+        # Growth rates (QoQ)
+        rev_growth = _safe_growth(rev_curr, rev_prev)
+        net_growth = _safe_growth(net_curr, net_prev)
+        op_growth = _safe_growth(op_curr, op_prev)
+
+        # Margins — FMP provides ratios directly, but compute for consistency
+        gross_margin = float(latest.get("grossProfitRatio", 0) or 0)
+        op_margin = float(latest.get("operatingIncomeRatio", 0) or 0)
+        if gross_margin == 0 and rev_curr > 0:
+            gross_margin = gp_curr / rev_curr
+        if op_margin == 0 and rev_curr > 0:
+            op_margin = op_curr / rev_curr
+
+        # YoY comparison (if 4+ quarters available)
+        yoy_rev_growth = None
+        if len(statements) >= 4:
+            rev_yoy = float(statements[3].get("revenue", 0) or 0)
+            yoy_rev_growth = _safe_growth(rev_curr, rev_yoy)
+
+        # Scoring — same formulas as yfinance path
+        f_conviction = float(np.clip(
+            (rev_growth * 0.35 + net_growth * 0.35 + op_growth * 0.30) / 0.10,
+            -1.0, 1.0
+        ))
+
+        g_momentum = float(np.clip(rev_growth / 0.05, -1.0, 1.0))
+
+        r_deterioration = 0.1 if net_curr > 0 else 0.5
+        if op_growth < -0.1:
+            r_deterioration += 0.2
+        r_deterioration = float(np.clip(r_deterioration, 0, 1))
+
+        # Build drivers
+        supporting = [f"QoQ Revenue: {rev_growth:+.1%}", f"Net Income: {net_growth:+.1%}"]
+        if op_growth != 0:
+            supporting.append(f"Operating Income: {op_growth:+.1%}")
+        if yoy_rev_growth is not None:
+            supporting.append(f"YoY Revenue: {yoy_rev_growth:+.1%}")
+
+        risk_drivers = []
+        if net_curr <= 0:
+            risk_drivers.append("Negative earnings")
+        if rev_growth < 0:
+            risk_drivers.append("Revenue declining QoQ")
+        if op_growth < -0.1:
+            risk_drivers.append("Operating income deteriorating")
+        if not risk_drivers:
+            risk_drivers.append("No major risk flags")
+
+        _log.info("Filing: %s FMP signals — rev %+.1f%%, net %+.1f%%, op %+.1f%%",
+                  ticker, rev_growth * 100, net_growth * 100, op_growth * 100)
+
+        return {
+            "status": "Success",
+            "source": "FMP",
+            "fundamental_conviction": f_conviction,
+            "fundamental_reasoning": (
+                f"Multi-factor growth: Revenue {rev_growth:+.1%}, Net Income {net_growth:+.1%}, "
+                f"Operating Income {op_growth:+.1%}. "
+                f"Gross Margin: {gross_margin:.1%}, Op Margin: {op_margin:.1%}."
+            ),
+            "guidance_momentum": g_momentum,
+            "guidance_reasoning": (
+                f"Revenue trajectory is {'accelerating' if rev_growth > 0.05 else 'improving' if rev_growth > 0 else 'stable' if rev_growth > -0.02 else 'declining'} QoQ."
+            ),
+            "risk_deterioration": r_deterioration,
+            "risk_reasoning": (
+                f"Profitability: {'Healthy' if net_curr > 0 else 'Risk/Negative'}. "
+                f"Margin trend: {'expanding' if op_growth > 0 else 'compressing'}."
+            ),
+            "supporting_drivers": supporting,
+            "risk_drivers": risk_drivers,
+            "raw_metrics": {
+                "revenue_growth": rev_growth,
+                "net_income_growth": net_growth,
+                "operating_income_growth": op_growth,
+                "gross_margin": gross_margin,
+                "operating_margin": op_margin,
+                "yoy_revenue_growth": yoy_rev_growth,
+            },
+        }
+    except Exception as e:
+        _log.warning("Filing: FMP extraction failed for %s: %s", ticker, e)
+        return None
+
+
 def _extract_yfinance_fundamental_signals(ticker: str) -> Dict[str, Any]:
-    """Fetches quantitative fundamental signals using yfinance financials."""
+    """Fetches quantitative fundamental signals using yfinance financials (fallback)."""
     try:
         t = yf.Ticker(ticker)
 
@@ -198,7 +318,12 @@ def run_filing_intel(state: PortfolioState) -> PortfolioState:
 
     for i, ticker in enumerate(tickers):
         progress_bar.progress((i + 1) / len(tickers), text=f"Fundamental Intel: {ticker}")
-        results[ticker] = _extract_yfinance_fundamental_signals(ticker)
+        # Try FMP first (structured quarterly data), fall back to yfinance
+        fmp_result = _extract_fmp_fundamental_signals(ticker)
+        if fmp_result and fmp_result.get("status") == "Success":
+            results[ticker] = fmp_result
+        else:
+            results[ticker] = _extract_yfinance_fundamental_signals(ticker)
 
     state.filing_intel = results
     progress_bar.empty()

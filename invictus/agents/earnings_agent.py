@@ -1,7 +1,7 @@
 """
 Invictus — Earnings & Sentiment Intelligence Agent (v3)
-Uses yfinance news context as the primary source for management tone and market sentiment.
-Bypasses restricted transcript APIs with high-fidelity real-time news analysis.
+Uses FMP stock news as the primary source for management tone and market sentiment,
+with yfinance news as fallback. FMP provides richer article text than yfinance summaries.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -40,6 +40,7 @@ Note: The different normalization bases (500 vs 1000) are INTENTIONAL.
       require different normalization to produce comparable [0,1] outputs.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 """
+import logging
 import yfinance as yf
 import streamlit as st
 import json
@@ -48,6 +49,9 @@ from typing import Dict, Any, List, Optional
 
 from invictus.agents.graph_state import PortfolioState
 from invictus.llm import call_llm_json, llm_available, get_provider
+from invictus.fmp_client import fetch_stock_news, fmp_available
+
+_log = logging.getLogger(__name__)
 
 # ── Sentiment Dictionaries (LLM-free fallback) ────────────────────────
 
@@ -72,8 +76,26 @@ ANALYST_PRESSURE_KEYWORDS = [
 ]
 
 
-def _fetch_yfinance_sentiment_context(ticker: str) -> str:
-    """Fetches latest institutional news context from yfinance."""
+def _fetch_sentiment_context(ticker: str) -> str:
+    """
+    Fetches latest news context for sentiment analysis.
+    Tries FMP stock news first (richer text), falls back to yfinance.
+    """
+    # Try FMP first — returns full article text
+    if fmp_available():
+        fmp_articles = fetch_stock_news(ticker, limit=15)
+        if fmp_articles:
+            context = []
+            for item in fmp_articles:
+                title = item.get("title", "")
+                text = item.get("text", "")[:1500]
+                if title:
+                    context.append(f"Title: {title}\n{text}\n---")
+            if context:
+                _log.info("Earnings: %s sentiment context from FMP (%d articles)", ticker, len(context))
+                return "\n".join(context)
+
+    # Fallback to yfinance
     try:
         t = yf.Ticker(ticker)
         news = t.news
@@ -245,7 +267,7 @@ def run_earnings_intel(state: PortfolioState) -> PortfolioState:
 
     for i, ticker in enumerate(tickers):
         progress_bar.progress((i + 1) / len(tickers), text=f"Sentiment Intel: {ticker}")
-        context = _fetch_yfinance_sentiment_context(ticker)
+        context = _fetch_sentiment_context(ticker)
 
         # Try LLM first, fall back to dictionary
         llm_result = _analyze_sentiment_with_llm(ticker, context)

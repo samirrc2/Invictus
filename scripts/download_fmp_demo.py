@@ -126,7 +126,25 @@ def download_press_releases(ticker: str):
 def download_analyst_estimates(ticker: str):
     print(f"  📊 Analyst Estimates:")
     data = fmp_get("analyst-estimates", {
-        "symbol": ticker, "period": "quarter", "limit": 8,
+        "symbol": ticker, "limit": 8,
+    })
+    return data if isinstance(data, list) else []
+
+
+def download_insider_trading(ticker: str):
+    """Download insider trading transactions (available on current plan)."""
+    print(f"  🕵️ Insider Trading:")
+    data = fmp_get("insider-trading/search", {
+        "symbol": ticker, "limit": 100,
+    })
+    return data if isinstance(data, list) else []
+
+
+def download_income_statement(ticker: str):
+    """Download quarterly income statements (available on current plan)."""
+    print(f"  📈 Income Statements:")
+    data = fmp_get("income-statement", {
+        "symbol": ticker, "period": "quarter", "limit": 4,
     })
     return data if isinstance(data, list) else []
 
@@ -194,6 +212,8 @@ def main():
         sr = download_earnings_surprises(ticker); save_json(sr, td / "earnings_surprises.json");  s["earnings_surprises"] = len(sr)
         n = download_stock_news(ticker);          save_json(n, td / "stock_news.json");           s["stock_news"] = len(n)
         ec = download_earnings_calendar(ticker);  save_json(ec, td / "earnings_calendar.json");   s["earnings_calendar"] = len(ec)
+        it = download_insider_trading(ticker);    save_json(it, td / "insider_trading.json");     s["insider_trading"] = len(it)
+        inc = download_income_statement(ticker);  save_json(inc, td / "income_statement.json");   s["income_statement"] = len(inc)
 
         summary[ticker] = s
         time.sleep(0.5)
@@ -207,14 +227,15 @@ def main():
     print(f"\n{'═'*60}")
     print(f"{'SUMMARY':^60}")
     print(f"{'═'*60}")
-    print(f"{'Ticker':<8} {'Trans':>6} {'Press':>6} {'Estim':>6} {'Grade':>6} {'Surpr':>6} {'News':>6} {'Earns':>6}")
-    print(f"{'─'*60}")
+    print(f"{'Ticker':<8} {'Trans':>6} {'Press':>6} {'Estim':>6} {'Grade':>6} {'Surpr':>6} {'News':>6} {'Earns':>6} {'Insdr':>6} {'IncSt':>6}")
+    print(f"{'─'*76}")
     for t, c in summary.items():
         print(f"{t:<8} {c.get('transcripts',0):>6} {c.get('press_releases',0):>6} "
               f"{c.get('analyst_estimates',0):>6} {c.get('analyst_grades',0):>6} "
               f"{c.get('earnings_surprises',0):>6} {c.get('stock_news',0):>6} "
-              f"{c.get('earnings_calendar',0):>6}")
-    print(f"{'═'*60}")
+              f"{c.get('earnings_calendar',0):>6} {c.get('insider_trading',0):>6} "
+              f"{c.get('income_statement',0):>6}")
+    print(f"{'═'*76}")
 
 
 if __name__ == "__main__":

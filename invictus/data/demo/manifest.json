@@ -1,5 +1,5 @@
 {
-  "downloaded_at": "2026-05-24 15:49:28",
+  "downloaded_at": "2026-05-25 20:20:44",
   "tickers": [
     "AAPL",
     "AMD",
@@ -15,7 +15,9 @@
       "analyst_grades": 1,
       "earnings_surprises": 0,
       "stock_news": 20,
-      "earnings_calendar": 8
+      "earnings_calendar": 8,
+      "insider_trading": 100,
+      "income_statement": 4
     },
     "AMD": {
       "transcripts": 0,
@@ -24,7 +26,9 @@
       "analyst_grades": 1,
       "earnings_surprises": 0,
       "stock_news": 20,
-      "earnings_calendar": 8
+      "earnings_calendar": 8,
+      "insider_trading": 100,
+      "income_statement": 4
     },
     "META": {
       "transcripts": 0,
@@ -33,7 +37,9 @@
       "analyst_grades": 1,
       "earnings_surprises": 0,
       "stock_news": 20,
-      "earnings_calendar": 8
+      "earnings_calendar": 8,
+      "insider_trading": 100,
+      "income_statement": 4
     },
     "TSLA": {
       "transcripts": 0,
@@ -42,7 +48,9 @@
       "analyst_grades": 1,
       "earnings_surprises": 0,
       "stock_news": 20,
-      "earnings_calendar": 8
+      "earnings_calendar": 8,
+      "insider_trading": 100,
+      "income_statement": 4
     },
     "SMH": {
       "transcripts": 0,
@@ -51,7 +59,9 @@
       "analyst_grades": 0,
       "earnings_surprises": 0,
       "stock_news": 20,
-      "earnings_calendar": 0
+      "earnings_calendar": 0,
+      "insider_trading": 0,
+      "income_statement": 0
     }
   }
 }
