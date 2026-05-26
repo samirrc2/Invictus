@@ -1,24 +1,26 @@
 # INVICTUS
 
-**Institutional-Grade Portfolio Intelligence Platform**
+**Institutional-Grade Equity Portfolio Intelligence Platform**
 
-A multi-agent portfolio analytics system built on LangGraph that orchestrates 14 specialized agents across a parallel DAG pipeline to produce risk metrics, conviction signals, and AI-generated commentary for equity portfolios.
+A multi-agent system built on LangGraph that orchestrates 15 specialized agents across a parallel DAG pipeline — producing risk analytics, conviction signals, and AI-generated commentary for equity portfolios.
 
-Live demo: [invictus-app.streamlit.app](https://invictus-7iskuf67l87iksp8vunmag.streamlit.app/)
+**[Live Demo →](https://invictus-7iskuf67l87iksp8vunmag.streamlit.app/)**
+
+Upload a CSV or try the built-in demo portfolio (AAPL, AMD, META, TSLA, SMH) to see the full pipeline in action.
 
 ---
 
 ## What It Does
 
-Invictus takes a portfolio of equity holdings (tickers, shares, cost basis) and runs a full analytical pipeline:
+Invictus takes a portfolio of equity holdings (tickers, shares, cost basis) and runs a three-stage analytical pipeline:
 
-1. **Portfolio Intelligence** — Risk metrics (VaR, CVaR, Sharpe, Sortino, max drawdown), PCA factor decomposition, volatility regime detection, stress testing against 5 historical scenarios (COVID crash, 2022 rate shock, etc.), portfolio Greeks, and P&L attribution.
+**Portfolio Intelligence** — 7 risk dimensions computed in parallel: VaR/CVaR at 95%, Sharpe and Sortino ratios, max drawdown, beta, marginal contribution to risk (MCTR), PCA factor decomposition, K-Means volatility regime detection, stress testing against 5 historical scenarios, Black-Scholes Greeks, and P&L attribution decomposed into market, sector, and idiosyncratic components.
 
-2. **Conviction Intelligence** — Institutional flow analysis (insider transactions with stake-context scoring, fund accumulation trends, smart money concentration), 10-K/10-Q filing analysis via RAG, earnings call transcript analysis with credibility gating, and management outlook scoring across 6 dimensions.
+**Conviction Intelligence** — Per-ticker deep analysis across 4 signal sources: institutional flow scoring (insider transactions, fund accumulation trends, smart money concentration), fundamental analysis via yfinance and FMP, management outlook extraction from earnings transcripts and press releases (6 dimensions with credibility gating), and SEC 10-K retrieval-augmented analysis.
 
-3. **Bayesian Synthesis** — A conviction engine that combines fundamental, management, flow, and technical signals into a single outperformance probability per ticker, calibrated via Monte Carlo simulation.
+**Bayesian Synthesis** — A conviction engine that combines all upstream signals into a single outperformance probability per ticker, with dynamic signal weighting, cross-signal agreement detection, and Monte Carlo confidence intervals.
 
-4. **AI Commentary** — LLM-generated narrative that synthesizes all signals into actionable portfolio commentary, evaluated for numerical grounding and cross-agent consistency.
+An AI commentary layer and numerical grounding evaluator sit on top — the LLM generates a portfolio narrative, and the eval harness verifies every number in it traces back to an upstream agent output.
 
 ---
 
@@ -49,9 +51,9 @@ Invictus takes a portfolio of equity holdings (tickers, shares, cost basis) and 
               evaluate_commentary
 ```
 
-Built on **LangGraph StateGraph** with fan-out/fan-in edges and barrier nodes for parallel synchronization. 7 stages, 15 nodes total. Stages 1-2 execute up to 10 agents in parallel; stages 3-7 run sequentially.
+Built on **LangGraph StateGraph** with fan-out/fan-in edges and barrier nodes for parallel execution. 15 registered agent nodes + 2 synchronization barriers. Stages 1–2 run up to 10 agents in parallel; stages 3–7 execute sequentially.
 
-The shared state container (`PortfolioState`) is a Pydantic model that accumulates results across nodes — each agent reads what it needs and writes its outputs without coupling to other agents.
+The shared state container (`PortfolioState`) is a Pydantic v2 model — each agent reads what it needs and writes its outputs without coupling to other agents.
 
 ---
 
@@ -59,44 +61,45 @@ The shared state container (`PortfolioState`) is a Pydantic model that accumulat
 
 | Agent | What It Computes |
 |-------|-----------------|
-| **Risk** | Annualized volatility, Sharpe, Sortino, VaR/CVaR (95%), max drawdown, beta, MCTR, correlation matrix |
-| **PCA** | Principal component decomposition of portfolio returns — identifies hidden factor exposures |
-| **Vol Regime** | K-means clustering on rolling volatility to detect low/normal/high regimes with transition probabilities |
-| **Stress Test** | Portfolio replay against 5 historical scenarios (COVID crash, 2022 rate shock, tech drawdown, semi selloff, SVB crisis) with per-ticker attribution |
-| **Greeks** | Delta, gamma, vega, theta — options-implied risk sensitivities using Black-Scholes |
+| **Risk** | Annualized vol, Sharpe, Sortino, VaR/CVaR (95%), max drawdown, beta, MCTR, correlation matrix |
+| **PCA** | Principal component decomposition — identifies hidden factor exposures across holdings |
+| **Vol Regime** | K-Means clustering on rolling volatility → Low / Medium / High regimes with transition history |
+| **Stress Test** | Replay against 5 historical scenarios (COVID crash, 2022 rate shock, tech drawdown, semi selloff, SVB crisis) |
+| **Greeks** | Delta, gamma, vega, theta — Black-Scholes options-implied risk sensitivities |
 | **P&L Attribution** | Return decomposition into market, sector, and idiosyncratic components |
-| **Flow** | 3-bucket institutional flow scoring: insider intelligence (0.35), fund accumulation trend (0.40), capital concentration (0.25) |
-| **Filing (RAG)** | 10-K/10-Q retrieval-augmented generation — TF-IDF vector retrieval with chunked SEC filings |
-| **Filing Intel** | Analyst grades, guidance sentiment, estimate revisions from FMP |
-| **Earnings Intel** | Earnings surprise scoring, management tone analysis, call transcript credibility gating |
-| **ML Accumulation** | Bayesian signal model combining fundamental + technical features for accumulation probability |
-| **Synthesis** | Weighted composite of 4 signal sources into a single conviction score per ticker with Monte Carlo confidence intervals |
+| **Flow** | 3-bucket scoring: insider intelligence (0.35), fund accumulation trend (0.40), capital concentration (0.25) |
+| **Filing Intel** | Fundamental signals from yfinance financials + FMP analyst grades and estimate revisions |
+| **Earnings Intel** | Earnings surprise scoring + management tone analysis via LLM with dictionary fallback |
+| **10-K RAG** | TF-IDF retrieval over chunked SEC filings — extracts business drivers, risk factors, moat analysis |
+| **Outlook** | Management outlook across 6 dimensions (guidance, capex, margins, competitive, demand, risk) with credibility gating |
+| **ML Accumulation** | Bayesian signal model — sequential updating with log-linear Bayes factors over fundamental + technical features |
+| **Synthesis** | Dynamic-weighted composite of 4 signal sources → single conviction probability with Monte Carlo CI |
 | **Commentary** | LLM-generated portfolio narrative from all upstream signals |
-| **Eval** | Numerical grounding checks, cross-agent consistency analysis, hallucination detection |
+| **Eval** | Numerical grounding checks + cross-agent consistency + hallucination detection |
 
 ---
 
-## Flow Agent — Scoring Methodology
+## Flow Agent — Scoring Detail
 
-The flow agent implements a non-trivial scoring model worth highlighting:
+The institutional flow agent is the most methodologically complex agent. Three scored sub-components:
 
-**Insider Intelligence (weight: 0.35)** — Materiality-based scoring where signal strength comes from what percentage of their stake an insider transacted, not raw dollar value. A CEO selling $340M of AAPL is noise if it's 1% of their 14% stake — routine 10b5-1 plan execution. Role-weighted (CEO/CFO = 3x, VP/Director = 2x) with 90-day exponential time decay.
+**Insider Intelligence (0.35)** — Signal comes from what percentage of their stake an insider transacted, not raw dollar value. A CEO selling $340M of AAPL is noise if it's 1% of their stake. Role-weighted (CEO/CFO = 3×, VP/Director = 2×) with 90-day exponential time decay and materiality-based exit detection.
 
-**Fund Accumulation Trend (weight: 0.40)** — Institutional holders classified as smart money (hedge funds: Citadel, Renaissance, etc.), active (stock-picking funds), or passive (Vanguard, BlackRock index). Active fund overrides prevent misclassifying active arms of passive parents (e.g., Fidelity Contrafund is not passive). Score = `smart_trend * 0.50 + active_trend * 0.30 + breadth * 0.20`.
+**Fund Accumulation Trend (0.40)** — Institutional holders classified as smart money (hedge funds), active (stock-picking), or passive (index). Active fund overrides handle active arms of passive parents (e.g., Fidelity Contrafund ≠ passive). Value-weighted breadth scoring replaces naive equal-weighting.
 
-**Capital Concentration (weight: 0.25)** — Smart money presence as fraction of institutional base, centered at 15% = neutral. Confidence fade-in below 5% for mega-caps where passive dominance makes the metric unreliable.
+**Capital Concentration (0.25)** — Smart money as fraction of institutional base, centered at 15% = neutral. Confidence fade-in below 5% for mega-caps where passive dominance makes the metric unreliable. Smooth sigmoid replaces hard discontinuity at the 2% threshold.
 
 ---
 
 ## Evaluation & Observability
 
-The platform includes a full evaluation and observability stack, accessible via the Developer Console (`?dev=invictus`):
+Accessible via the Developer Console (`?dev=invictus` URL parameter), the platform includes:
 
-**Evaluation modules** — Numerical grounding (verifies LLM commentary contains accurate numbers traceable to upstream agent outputs), cross-agent consistency analysis, answer stability testing, LLM cost breakdowns with prompt caching opportunity analysis, and a walk-forward backtest engine that replays historical conviction signals against forward returns to measure hit rates and calibration.
+**Evaluation** — Numerical grounding evaluator (verifies LLM numbers trace to upstream outputs, target >85% grounding rate), cross-agent consistency analysis, answer stability measurement (coefficient of variation across runs), LLM cost breakdowns, and a walk-forward backtest engine that replays conviction signals against actual forward returns.
 
-**Observability** — 6 telemetry collectors track agent execution latency, LLM token usage, ML prediction drift, conviction signal evolution, data fetch health, and session-level metrics. 3 analyzers (calibration, drift, hallucination) process collected telemetry into actionable diagnostics.
+**Observability** — 6 telemetry collectors (agent latency, LLM tokens, ML drift, conviction signals, data health, sessions) writing to a local SQLite store. 3 diagnostic analyzers (calibration, drift, hallucination) process telemetry into alerts.
 
-**Dev Console** (11 tabs) — Architecture visualization, agent performance, LLM quality, ML monitoring, conviction analytics, session analytics, data health, cost analysis, eval metrics, and backtest results.
+**Dev Console** — 11 tabs: Architecture, Agent Performance, LLM Quality, ML Monitoring, Conviction Analytics, Conviction Intel, Session Analytics, Data Health, Cost Analysis, Eval Metrics, Backtest.
 
 ---
 
@@ -105,14 +108,15 @@ The platform includes a full evaluation and observability stack, accessible via 
 | Layer | Technology |
 |-------|-----------|
 | Orchestration | LangGraph StateGraph (fan-out/fan-in DAG) |
-| Frontend | Streamlit with custom CSS design system |
-| LLM | Google Gemini 2.0 Flash (primary), OpenAI GPT-4o-mini (fallback) |
-| RAG | LangChain + TF-IDF retrieval (scikit-learn) + OpenAI text-embedding-3-small |
-| ML | scikit-learn, XGBoost, SciPy (Bayesian signal model) |
-| Quant | NumPy, Pandas, ARCH (GARCH volatility modeling) |
-| Market Data | yfinance (prices, institutional holders, insider transactions), FMP API (filings, analyst data) |
+| Frontend | Streamlit with custom design system (tokens, components, charts) |
+| LLM | Google Gemini 2.0 Flash (primary) → OpenAI GPT-4o-mini (fallback) |
+| RAG | TF-IDF retrieval (scikit-learn) over chunked SEC filings |
+| ML | Bayesian signal model (SciPy/NumPy) — no sklearn ensemble |
+| Quant | NumPy, Pandas, scikit-learn (K-Means, PCA) |
+| Market Data | yfinance (prices, holders, options) + FMP API (filings, transcripts, insiders, estimates) |
 | Visualization | Plotly, Matplotlib, Seaborn |
-| State Management | Pydantic v2 models with operator.add reducers |
+| State | Pydantic v2 typed state container |
+| Observability | SQLite + custom collectors/analyzers |
 
 ---
 
@@ -120,81 +124,78 @@ The platform includes a full evaluation and observability stack, accessible via 
 
 ```
 invictus/
-├── agents/              # 14 agents + orchestrator + state schema
-│   ├── orchestrator.py  # LangGraph StateGraph with 7 stages
+├── agents/              # 15 agent nodes + orchestrator + state schema
+│   ├── orchestrator.py  # LangGraph StateGraph — 15 nodes, 2 barriers, 7 stages
 │   ├── graph_state.py   # Pydantic PortfolioState container
-│   ├── risk_agent.py    # VaR, CVaR, Sharpe, Sortino, drawdown
+│   ├── risk_agent.py    # VaR, CVaR, Sharpe, Sortino, drawdown, MCTR
 │   ├── flow_agent.py    # 3-bucket institutional flow scoring
-│   ├── synthesis_agent.py # Bayesian conviction synthesis
-│   └── ...              # 11 more agents
+│   ├── synthesis_agent.py # Bayesian conviction synthesis + Monte Carlo
+│   ├── ml_agent.py      # Bayesian accumulation signal model (v4)
+│   ├── outlook_agent.py # Management outlook — 6 dimensions + credibility
+│   └── ...              # 8 more agents
 ├── pages/
-│   ├── landing/         # How It Works — architecture + methodology
-│   ├── portfolio/       # 7 tabs: dashboard, risk, PCA, vol, stress, greeks, P&L
-│   ├── conviction/      # 4 tabs: engine, flows, outlook, transcripts
-│   ├── dev_analytics/   # 11 tabs: architecture through backtest
-│   └── hypo_simulator.py # Hypothetical portfolio what-if analysis
+│   ├── landing/         # How It Works — system architecture + methodology
+│   ├── portfolio/       # 7 sub-tabs: dashboard, risk, PCA, vol, stress, greeks, P&L
+│   ├── conviction/      # 4 sub-tabs: engine, flows, outlook, transcripts
+│   ├── dev_analytics/   # 11 sub-tabs: architecture through backtest
+│   └── hypo_simulator.py # Allocation Engine — hypothetical what-if analysis
 ├── observability/
-│   ├── collectors/      # 6 telemetry collectors
-│   └── analyzers/       # 3 diagnostic analyzers
-├── evaluation/          # 5 evaluator modules + backtest tracker
-├── backtest/            # Walk-forward backtest engine (4 modules)
-├── design/              # Streamlit design system (tokens, components, charts)
+│   ├── collectors/      # 6 telemetry collectors (agent, LLM, ML, conviction, data, session)
+│   └── analyzers/       # 3 diagnostic analyzers (calibration, drift, hallucination)
+├── evaluation/          # Grounding, consistency, cost, backtest tracker
+├── backtest/            # Walk-forward engine: config, data loader, runner, analyzer
+├── design/              # Design system — tokens, components, formatters, charts, nav
 ├── data/
 │   ├── demo/            # Cached demo data for Streamlit Cloud fallback
-│   └── portfolio_loader.py # CSV/dict portfolio loading + price fetching
-├── llm.py               # Unified LLM interface (Gemini + OpenAI)
-├── config.py            # All constants, weights, thresholds
-└── rag/                 # SEC filing retrieval (TF-IDF + chunking)
-app.py                   # Streamlit entry point + pipeline orchestration
+│   └── portfolio_loader.py
+├── rag/                 # SEC 10-K retrieval (TF-IDF + chunking)
+├── llm.py               # Centralized LLM gateway (Gemini → OpenAI fallback)
+├── fmp_client.py        # Shared FMP API client
+└── config.py            # All constants, API keys, thresholds
+app.py                   # Streamlit entry point — thin routing shell
 ```
 
-**104 Python files | ~21,000 lines of code**
+**106 Python files · ~21,700 lines of code**
 
 ---
 
 ## Running Locally
 
 ```bash
-# Clone
 git clone https://github.com/samirrc2/Invictus.git
 cd Invictus
 
-# Environment
 python -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 
-# API keys (at minimum, one LLM key is needed for AI commentary)
+# API keys — at minimum, one LLM key is needed for AI features
 cp .env.example .env
-# Edit .env with your keys:
-#   OPENAI_API_KEY=sk-...
-#   GEMINI_API_KEY=AI...
-#   FMP_API_KEY=...        (optional — for filing/earnings data)
+# OPENAI_API_KEY=sk-...       (LLM fallback)
+# GEMINI_API_KEY=AI...        (primary LLM)
+# FMP_API_KEY=...             (filings, transcripts, insider data)
 
-# Run
 streamlit run app.py
 ```
 
-The app runs in **demo mode** by default with a pre-configured 5-stock portfolio (AAPL, AMD, META, TSLA, SMH). Upload a CSV with columns `Ticker, Shares, CostBasis` to analyze your own portfolio.
+The app opens with a landing page explaining the system architecture and methodology. Click **Demo Mode** to load a pre-configured 5-stock portfolio and run the full pipeline, or upload a CSV with columns `Ticker, Shares, CostBasis`.
 
 ---
 
-## Key Design Decisions
+## Design Decisions
 
-**Why LangGraph over simple sequential execution?** The fan-out/fan-in pattern lets risk, PCA, vol regime, stress, Greeks, and P&L run simultaneously in Stage 1, cutting pipeline latency roughly in half compared to sequential. The barrier nodes ensure downstream agents (synthesis, commentary) see all upstream results before executing.
+**LangGraph over sequential execution** — The fan-out/fan-in pattern runs 6 risk agents simultaneously in Stage 1, then 4 conviction agents in Stage 2. Barrier nodes ensure downstream agents see complete upstream results.
 
-**Why materiality-based insider scoring?** Raw dollar values are misleading for mega-caps. Tim Cook selling $105M of AAPL sounds alarming but is 15% of his 0.02% stake — routine compensation liquidation. The flow agent scores by `tx_pct_of_stake` to separate signal from noise.
+**Materiality-based insider scoring** — Raw dollar values mislead on mega-caps. Tim Cook selling $105M of AAPL sounds alarming but is 15% of his 0.02% stake — routine 10b5-1 execution. The flow agent scores by `tx_pct_of_stake` to separate signal from noise.
 
-**Why Bayesian synthesis over simple weighted averages?** The synthesis engine dynamically adjusts signal weights based on data quality (confidence gates) and cross-signal agreement. When fundamental and flow signals agree, the composite is stronger than either alone; when they conflict, the output is appropriately uncertain.
+**Bayesian synthesis over weighted averages** — Signal weights adjust dynamically based on data quality (confidence gates) and cross-signal agreement. When fundamental and flow signals agree, the composite strengthens; when they conflict, the output is appropriately uncertain.
 
-**Why a full evaluation harness?** LLM outputs are non-deterministic. The grounding evaluator catches when commentary claims "Sharpe improved to 1.4" but the risk agent computed 1.2. The consistency evaluator catches when the commentary contradicts the flow agent's verdict. Without this, the system would occasionally produce plausible-sounding but factually wrong analysis.
+**Full evaluation harness** — LLM outputs are non-deterministic. The grounding evaluator catches when commentary claims "Sharpe improved to 1.4" but the risk agent computed 1.2. Without this, the system would occasionally produce plausible but factually wrong analysis.
 
 ---
 
 ## Author
 
 **Samir Chincholikar**
-
-Senior Risk Analytics Engineer · Quantitative Finance · ML/AI
 
 [GitHub](https://github.com/samirrc2) · [Email](mailto:samir.chincholikar@gmail.com)
