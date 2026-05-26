@@ -4,7 +4,7 @@
 
 A multi-agent portfolio analytics system built on LangGraph that orchestrates 14 specialized agents across a parallel DAG pipeline to produce risk metrics, conviction signals, and AI-generated commentary for equity portfolios.
 
-Live demo: [invictus-app.streamlit.app](https://invictus-app.streamlit.app)
+Live demo: [invictus-app.streamlit.app]([https://invictus-app.streamlit.app](https://invictus-7iskuf67l87iksp8vunmag.streamlit.app/))
 
 ---
 
