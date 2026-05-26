@@ -85,7 +85,6 @@ def render():
         if st.session_state.landing_active == "arch":
             # System Architecture — render hero.py sections
             _hero._render_topology()
-            _hero._render_numbers()
             _hero._render_methodology()
             _hero._render_code_arch()
             _hero._render_eval()

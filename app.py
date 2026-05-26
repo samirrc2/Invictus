@@ -316,16 +316,29 @@ if st.session_state.get("_demo_confirmed"):
     demo_mode = True
 
 # ══════════════════════════════════════════════════════════════════════
-# CSV UPLOAD GATE — redirect to Demo Mode
+# CSV UPLOAD / LOAD PORTFOLIO GATE — redirect to Demo Mode
 # ══════════════════════════════════════════════════════════════════════
-if load_btn and upload_method == "Upload CSV" and uploaded_file and not demo_mode:
-    st.warning(
-        "**We've hit the API call and token limit for today.** "
-        "Custom portfolio uploads are temporarily unavailable, but you can click on "
-        "**Demo Mode** to explore Invictus with a sample portfolio — "
-        "all 14 agents, full analytics, zero restrictions.",
-        icon="⚠️",
+@st.dialog("API Limit Reached")
+def _api_limit_dialog():
+    st.markdown(
+        '<div style="font-size:14px;color:#334155;line-height:1.7;margin:4px 0 20px 0;">'
+        'Apologies — we\'ve hit the API call and token limit for the day. '
+        'Custom portfolio uploads are temporarily unavailable, but you can '
+        'click on <b>Demo Mode</b> to play around with Invictus — '
+        'all 14 agents, full analytics, zero restrictions.</div>',
+        unsafe_allow_html=True,
     )
+    c1, c2 = st.columns(2)
+    with c1:
+        if st.button("Close", key="api_limit_close", use_container_width=True):
+            st.rerun()
+    with c2:
+        if st.button("Demo Mode", key="api_limit_demo", use_container_width=True, type="primary"):
+            st.session_state._demo_confirmed = True
+            st.rerun()
+
+if load_btn and not demo_mode:
+    _api_limit_dialog()
     load_btn = False
 
 # ══════════════════════════════════════════════════════════════════════
@@ -353,186 +366,182 @@ if load_btn:
     _mode = "demo" if demo_mode else "csv" if (upload_method == "Upload CSV") else "default"
     log_pipeline_start(session_id=st.session_state.get("_analytics_sid"), mode=_mode)
 
-    with st.status("Executing Invictus Pipeline...", expanded=True) as status_ui:
-        try:
-            status_ui.update(label="Loading portfolio data...", state="running")
-            if upload_method == "Upload CSV" and uploaded_file:
-                holdings = smart_load_portfolio(uploaded_file.getvalue().decode("utf-8"),
-                                                manual_mapping=manual_mapping)
-            else:
-                holdings = load_portfolio_from_dict()
+    _progress_bar = st.progress(0, text="Loading portfolio data...")
+    try:
+        if upload_method == "Upload CSV" and uploaded_file:
+            holdings = smart_load_portfolio(uploaded_file.getvalue().decode("utf-8"),
+                                            manual_mapping=manual_mapping)
+        else:
+            holdings = load_portfolio_from_dict()
 
-            prices = fetch_price_history(holdings["Ticker"].tolist())
-            state = compute_portfolio_state(holdings, prices)
-            st.session_state.portfolio_state = state
-            st.session_state.portfolio_loaded = True
+        prices = fetch_price_history(holdings["Ticker"].tolist())
+        state = compute_portfolio_state(holdings, prices)
+        st.session_state.portfolio_state = state
+        st.session_state.portfolio_loaded = True
 
-            graph = create_graph()
-            pstate = PState(
-                holdings=state["holdings"], prices=state["prices"],
-                returns=state["returns"], weights=state["weights"],
-                total_value=state["total_value"],
-            )
+        graph = create_graph()
+        pstate = PState(
+            holdings=state["holdings"], prices=state["prices"],
+            returns=state["returns"], weights=state["weights"],
+            total_value=state["total_value"],
+        )
 
-            _agent_timers = {}
+        _agent_timers = {}
 
-            def _pipeline_progress(node_name, stage_idx, total_stages):
-                display = _AGENT_DISPLAY.get(node_name, node_name)
-                # Log completion of previous agent
-                for prev in _completed_nodes:
-                    st.session_state.agent_status[prev] = "done"
-                    if prev in _agent_timers:
-                        elapsed = (_time.perf_counter() - _agent_timers[prev]) * 1000
-                        log_agent_run(prev, _run_id, "success", elapsed)
-                # Start timing current agent
-                st.session_state.agent_status[node_name] = "working"
-                _agent_timers[node_name] = _time.perf_counter()
-                _completed_nodes.append(node_name)
-                stage_pct = int((stage_idx / total_stages) * 100)
-                status_ui.update(label=f"Running {display}... ({stage_pct}%)", state="running")
-                st.write(f"▸ **{display}**")
+        def _pipeline_progress(node_name, stage_idx, total_stages):
+            display = _AGENT_DISPLAY.get(node_name, node_name)
+            # Log completion of previous agent
+            for prev in _completed_nodes:
+                st.session_state.agent_status[prev] = "done"
+                if prev in _agent_timers:
+                    elapsed = (_time.perf_counter() - _agent_timers[prev]) * 1000
+                    log_agent_run(prev, _run_id, "success", elapsed)
+            # Start timing current agent
+            st.session_state.agent_status[node_name] = "working"
+            _agent_timers[node_name] = _time.perf_counter()
+            _completed_nodes.append(node_name)
+            pct = min((stage_idx + 1) / total_stages, 1.0)
+            _progress_bar.progress(pct, text=f"Running {display}...")
 
-            pstate = graph.run(pstate, progress_callback=_pipeline_progress)
+        pstate = graph.run(pstate, progress_callback=_pipeline_progress)
 
-            # Log final agent + mark all done
-            for node_name in _completed_nodes:
-                st.session_state.agent_status[node_name] = "done"
-                if node_name in _agent_timers:
-                    elapsed = (_time.perf_counter() - _agent_timers[node_name]) * 1000
-                    log_agent_run(node_name, _run_id, "success", elapsed)
+        # Log final agent + mark all done
+        for node_name in _completed_nodes:
+            st.session_state.agent_status[node_name] = "done"
+            if node_name in _agent_timers:
+                elapsed = (_time.perf_counter() - _agent_timers[node_name]) * 1000
+                log_agent_run(node_name, _run_id, "success", elapsed)
 
-            if pstate.errors:
-                st.session_state.pipeline_errors = list(pstate.errors)
-                for err_str in pstate.errors:
-                    if err_str.startswith("[") and "]" in err_str:
-                        err_node = err_str[1:err_str.index("]")]
-                        if err_node in st.session_state.agent_status:
-                            st.session_state.agent_status[err_node] = "error"
-                            log_agent_run(err_node, _run_id, "error", 0,
-                                          error_type="AgentError", error_message=err_str)
+        if pstate.errors:
+            st.session_state.pipeline_errors = list(pstate.errors)
+            for err_str in pstate.errors:
+                if err_str.startswith("[") and "]" in err_str:
+                    err_node = err_str[1:err_str.index("]")]
+                    if err_node in st.session_state.agent_status:
+                        st.session_state.agent_status[err_node] = "error"
+                        log_agent_run(err_node, _run_id, "error", 0,
+                                      error_type="AgentError", error_message=err_str)
 
-            st.session_state.risk_state = {
-                "risk_metrics": pstate.risk_metrics,
-                "correlation_matrix": pstate.correlation_matrix,
-                "ticker_risk": pstate.ticker_risk,
+        st.session_state.risk_state = {
+            "risk_metrics": pstate.risk_metrics,
+            "correlation_matrix": pstate.correlation_matrix,
+            "ticker_risk": pstate.ticker_risk,
+        }
+        st.session_state.pca_state            = pstate.pca_results
+        st.session_state.vol_regime_state     = pstate.vol_regime
+        st.session_state.stress_state         = pstate.stress_results
+        st.session_state.greeks_state         = pstate.greeks_results
+        st.session_state.flow_signals         = pstate.flow_signals
+        st.session_state.ml_state             = pstate.ml_predictions
+        st.session_state.filing_intel         = pstate.filing_intel
+        st.session_state.earnings_intel       = pstate.earnings_intel
+        st.session_state.conviction_synthesis = pstate.conviction_synthesis
+        st.session_state.commentary_state     = pstate.commentary
+        st.session_state.rag_state            = pstate.rag_insights
+        st.session_state.pnl_state            = pstate.pnl_attribution
+
+        st.session_state.pipeline_running = False
+
+        # ── Demo Mode: also run PI + Hypo Simulator ──────────
+        if demo_mode:
+            _progress_bar.progress(0.85, text="Running Predictive Intel...")
+
+            from invictus.agents.filing_agent import _extract_yfinance_fundamental_signals
+            from invictus.agents.earnings_agent import _fetch_sentiment_context, _analyze_sentiment_with_llm, _dictionary_sentiment
+            from invictus.agents.flow_agent import _fetch_flow_data, _score_flows
+            from invictus.agents.outlook_agent import analyze_management_outlook
+            from invictus.agents.synthesis_agent import _calculate_stock_conviction
+
+            demo_tickers = holdings["Ticker"].tolist()[:3]
+            pi_filing, pi_earnings, pi_flows, pi_outlook, pi_synthesis = {}, {}, {}, {}, {}
+
+            for t in demo_tickers:
+                if st.session_state.filing_intel and t in st.session_state.filing_intel:
+                    pi_filing[t] = st.session_state.filing_intel[t]
+                else:
+                    pi_filing[t] = _extract_yfinance_fundamental_signals(t)
+
+                if st.session_state.earnings_intel and t in st.session_state.earnings_intel:
+                    pi_earnings[t] = st.session_state.earnings_intel[t]
+                else:
+                    ctx = _fetch_sentiment_context(t)
+                    result = _analyze_sentiment_with_llm(t, ctx)
+                    pi_earnings[t] = result if (result and result.get("status") == "Success") else _dictionary_sentiment(ctx)
+
+                if st.session_state.flow_signals and t in st.session_state.flow_signals.get("intel", {}):
+                    pi_flows[t] = st.session_state.flow_signals["intel"][t]
+                else:
+                    raw_flow = _fetch_flow_data(t)
+                    pi_flows[t] = _score_flows(t, raw_flow)
+
+                try:
+                    pi_outlook[t] = analyze_management_outlook(t)
+                except Exception:
+                    pi_outlook[t] = {"status": "Error", "management_signal": 0,
+                        "outlook_score_raw": 0, "credibility_multiplier": 0.75,
+                        "outlook": {"dimensions": {}, "outlook_score": 0, "status": "Error"},
+                        "credibility": {"sub_dimensions": {}, "raw_credibility": 0.5,
+                            "credibility_multiplier": 0.75, "status": "Error"},
+                        "data_sources": "Error", "ticker": t}
+
+            vol_regime = st.session_state.vol_regime_state.get("current_regime") if st.session_state.vol_regime_state else None
+            for t in demo_tickers:
+                f = pi_filing.get(t, {"status": "N/A"})
+                e = pi_earnings.get(t, {"status": "N/A"})
+                fl = pi_flows.get(t, {"status": "N/A"})
+                ml_pred = None
+                if st.session_state.ml_state and "prediction_table" in (st.session_state.ml_state or {}):
+                    import pandas as _pd
+                    pt = st.session_state.ml_state["prediction_table"]
+                    if isinstance(pt, _pd.DataFrame) and t in pt["Ticker"].values:
+                        row = pt[pt["Ticker"] == t].iloc[0]
+                        ml_pred = {"accumulation_prob": row.get("Accumulation Prob", 0.5)}
+                pi_synthesis[t] = _calculate_stock_conviction(t, f, e, fl, ml_pred, vol_regime, "1 year")
+
+            st.session_state.pi_results = {
+                "filing": pi_filing, "earnings": pi_earnings,
+                "flows": pi_flows, "outlook": pi_outlook,
+                "synthesis": pi_synthesis, "tickers": demo_tickers,
             }
-            st.session_state.pca_state            = pstate.pca_results
-            st.session_state.vol_regime_state     = pstate.vol_regime
-            st.session_state.stress_state         = pstate.stress_results
-            st.session_state.greeks_state         = pstate.greeks_results
-            st.session_state.flow_signals         = pstate.flow_signals
-            st.session_state.ml_state             = pstate.ml_predictions
-            st.session_state.filing_intel         = pstate.filing_intel
-            st.session_state.earnings_intel       = pstate.earnings_intel
-            st.session_state.conviction_synthesis = pstate.conviction_synthesis
-            st.session_state.commentary_state     = pstate.commentary
-            st.session_state.rag_state            = pstate.rag_insights
-            st.session_state.pnl_state            = pstate.pnl_attribution
+            st.session_state.pi_selected_tickers = demo_tickers
 
-            st.session_state.pipeline_running = False
+            # Run Hypo Simulator with $5,000 per ticker
+            _progress_bar.progress(0.92, text="Running Hypo Simulator...")
 
-            # ── Demo Mode: also run PI + Hypo Simulator ──────────
-            if demo_mode:
-                status_ui.update(label="Demo: Running Predictive Intel...", state="running")
-                st.write("▸ **Predictive Intel (demo)**")
-
-                from invictus.agents.filing_agent import _extract_yfinance_fundamental_signals
-                from invictus.agents.earnings_agent import _fetch_yfinance_sentiment_context, _analyze_sentiment_with_llm, _dictionary_sentiment
-                from invictus.agents.flow_agent import _fetch_flow_data, _score_flows
-                from invictus.agents.outlook_agent import analyze_management_outlook
-                from invictus.agents.synthesis_agent import _calculate_stock_conviction
-
-                demo_tickers = holdings["Ticker"].tolist()[:3]
-                pi_filing, pi_earnings, pi_flows, pi_outlook, pi_synthesis = {}, {}, {}, {}, {}
-
-                for t in demo_tickers:
-                    if st.session_state.filing_intel and t in st.session_state.filing_intel:
-                        pi_filing[t] = st.session_state.filing_intel[t]
-                    else:
-                        pi_filing[t] = _extract_yfinance_fundamental_signals(t)
-
-                    if st.session_state.earnings_intel and t in st.session_state.earnings_intel:
-                        pi_earnings[t] = st.session_state.earnings_intel[t]
-                    else:
-                        ctx = _fetch_yfinance_sentiment_context(t)
-                        result = _analyze_sentiment_with_llm(t, ctx)
-                        pi_earnings[t] = result if (result and result.get("status") == "Success") else _dictionary_sentiment(ctx)
-
-                    if st.session_state.flow_signals and t in st.session_state.flow_signals.get("intel", {}):
-                        pi_flows[t] = st.session_state.flow_signals["intel"][t]
-                    else:
-                        raw_flow = _fetch_flow_data(t)
-                        pi_flows[t] = _score_flows(t, raw_flow)
-
-                    try:
-                        pi_outlook[t] = analyze_management_outlook(t)
-                    except Exception:
-                        pi_outlook[t] = {"status": "Error", "management_signal": 0,
-                            "outlook_score_raw": 0, "credibility_multiplier": 0.75,
-                            "outlook": {"dimensions": {}, "outlook_score": 0, "status": "Error"},
-                            "credibility": {"sub_dimensions": {}, "raw_credibility": 0.5,
-                                "credibility_multiplier": 0.75, "status": "Error"},
-                            "data_sources": "Error", "ticker": t}
-
-                vol_regime = st.session_state.vol_regime_state.get("current_regime") if st.session_state.vol_regime_state else None
-                for t in demo_tickers:
-                    f = pi_filing.get(t, {"status": "N/A"})
-                    e = pi_earnings.get(t, {"status": "N/A"})
-                    fl = pi_flows.get(t, {"status": "N/A"})
-                    ml_pred = None
-                    if st.session_state.ml_state and "prediction_table" in (st.session_state.ml_state or {}):
-                        import pandas as _pd
-                        pt = st.session_state.ml_state["prediction_table"]
-                        if isinstance(pt, _pd.DataFrame) and t in pt["Ticker"].values:
-                            row = pt[pt["Ticker"] == t].iloc[0]
-                            ml_pred = {"accumulation_prob": row.get("Accumulation Prob", 0.5)}
-                    pi_synthesis[t] = _calculate_stock_conviction(t, f, e, fl, ml_pred, vol_regime, "1 year")
-
-                st.session_state.pi_results = {
-                    "filing": pi_filing, "earnings": pi_earnings,
-                    "flows": pi_flows, "outlook": pi_outlook,
-                    "synthesis": pi_synthesis, "tickers": demo_tickers,
-                }
-                st.session_state.pi_selected_tickers = demo_tickers
-
-                # Run Hypo Simulator with $5,000 per ticker
-                status_ui.update(label="Demo: Running Hypo Simulator...", state="running")
-                st.write("▸ **Hypo Simulator (demo)**")
-
-                from invictus.agents.hypo_agent import compute_before_after, generate_pros_cons
-                demo_positions = {t: 5000.0 for t in demo_tickers}
-                comparison = compute_before_after(
-                    st.session_state.portfolio_state,
-                    st.session_state.risk_state,
-                    demo_positions,
-                    prices,
-                )
-                if "error" not in comparison:
-                    commentary = generate_pros_cons(comparison)
-                    st.session_state.hypo_results = {
-                        "comparison": comparison,
-                        "commentary": commentary,
-                        "positions": demo_positions,
-                    }
-
-            # Log pipeline completion
-            _pipeline_duration = (_time.perf_counter() - _pipeline_start_time) * 1000
-            log_pipeline_complete(
-                session_id=st.session_state.get("_analytics_sid"),
-                duration_ms=_pipeline_duration, mode=_mode,
+            from invictus.agents.hypo_agent import compute_before_after, generate_pros_cons
+            demo_positions = {t: 5000.0 for t in demo_tickers}
+            comparison = compute_before_after(
+                st.session_state.portfolio_state,
+                st.session_state.risk_state,
+                demo_positions,
+                prices,
             )
+            if "error" not in comparison:
+                commentary = generate_pros_cons(comparison)
+                st.session_state.hypo_results = {
+                    "comparison": comparison,
+                    "commentary": commentary,
+                    "positions": demo_positions,
+                }
 
-            status_ui.update(label="Pipeline complete — all agents finished", state="complete", expanded=False)
-            st.session_state.show_landing = False
-            st.rerun()
-        except Exception as e:
-            import traceback as _tb
-            st.session_state.pipeline_running = False
-            st.session_state.pipeline_errors = st.session_state.get("pipeline_errors", []) + [
-                f"[FATAL] {type(e).__name__}: {e}\n{_tb.format_exc()}"
-            ]
-            status_ui.update(label=f"Pipeline error: {e}", state="error")
-            st.error(f"Execution Error: {e}")
+        # Log pipeline completion
+        _pipeline_duration = (_time.perf_counter() - _pipeline_start_time) * 1000
+        log_pipeline_complete(
+            session_id=st.session_state.get("_analytics_sid"),
+            duration_ms=_pipeline_duration, mode=_mode,
+        )
+
+        _progress_bar.progress(1.0, text="Pipeline complete — all agents finished")
+        st.session_state.show_landing = False
+        st.rerun()
+    except Exception as e:
+        import traceback as _tb
+        st.session_state.pipeline_running = False
+        st.session_state.pipeline_errors = st.session_state.get("pipeline_errors", []) + [
+            f"[FATAL] {type(e).__name__}: {e}\n{_tb.format_exc()}"
+        ]
+        _progress_bar.progress(1.0, text=f"Pipeline error: {e}")
+        st.error(f"Execution Error: {e}")
 
 # ══════════════════════════════════════════════════════════════════════
 # LANDING PAGE — shows when show_landing is active
