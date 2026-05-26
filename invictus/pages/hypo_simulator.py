@@ -99,7 +99,8 @@ def render(sub):
             )
 
     # Per-stock $ input + simulate button
-    _demo_default = 5000.0 if st.session_state.get("_demo_confirmed") else 0.0
+    _is_demo = st.session_state.get("_demo_ran", False)
+    _demo_default = 5000.0 if _is_demo else 0.0
     n = len(pi_tickers)
     input_cols = st.columns(n + 1)
     investment_amounts = {}

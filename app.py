@@ -291,7 +291,7 @@ if _csv_checked:
 def _demo_dialog():
     st.markdown(
         '<div style="font-size:14px;color:#334155;line-height:1.7;margin:4px 0 20px 0;">'
-        'Loads a sample portfolio and runs the full Invictus pipeline. '
+        'This will load a sample portfolio and run the full Invictus pipeline. '
         'Feel free to play around!</div>',
         unsafe_allow_html=True,
     )
@@ -312,6 +312,7 @@ if st.session_state.get("_demo_confirmed"):
     del st.session_state._demo_confirmed
     load_btn = True
     demo_mode = True
+    st.session_state._demo_ran = True
 
 # ══════════════════════════════════════════════════════════════════════
 # CSV UPLOAD / LOAD PORTFOLIO GATE — redirect to Demo Mode
