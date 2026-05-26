@@ -23,17 +23,23 @@ def render(sub: str):
     if st.session_state.portfolio_loaded:
         portfolio_tickers = st.session_state.portfolio_state["holdings"]["Ticker"].tolist()
 
+    # Default to demo tickers if results already exist from demo mode
+    _demo_defaults = []
+    if portfolio_tickers and st.session_state.pi_results and st.session_state.pi_results.get("tickers"):
+        _demo_defaults = [t for t in st.session_state.pi_results["tickers"] if t in portfolio_tickers]
+
     pick_col, enter_col, btn_col = st.columns([1.2, 1.2, 0.6])
     with pick_col:
         picked = st.multiselect(
-            "From portfolio", options=portfolio_tickers, default=[], max_selections=3,
+            "From portfolio", options=portfolio_tickers,
+            default=_demo_defaults, max_selections=3,
             key="pi_portfolio_pick", placeholder="Select from portfolio...",
             disabled=len(portfolio_tickers) == 0,
         )
     with enter_col:
         new_input = st.text_input(
             "Enter tickers", placeholder="NVDA, AMZN, TSLA",
-            key="pi_new_ticker_input", help="Comma-separated",
+            key="pi_new_ticker_input", help="Comma-separated. Max 3 total (portfolio + new).",
         )
     with btn_col:
         st.markdown("<div style='height:28px;'></div>", unsafe_allow_html=True)
@@ -49,7 +55,7 @@ def render(sub: str):
     # ── Gate: need results ───────────────────────────────────────
     pi = st.session_state.pi_results
     if not pi or not pi.get("tickers"):
-        st.info("Select up to 3 securities and click Run Intel to begin conviction analysis.")
+        st.info("Select up to 3 tickers from your portfolio or enter new ones, then click Run Intel.")
         return
 
     pi_tickers = pi["tickers"]
@@ -74,7 +80,7 @@ def _run_pipeline(all_selected):
     """Execute the conviction intelligence pipeline for selected tickers."""
     from invictus.agents.filing_agent import _extract_yfinance_fundamental_signals
     from invictus.agents.earnings_agent import (
-        _fetch_yfinance_sentiment_context, _analyze_sentiment_with_llm, _dictionary_sentiment,
+        _fetch_sentiment_context, _analyze_sentiment_with_llm, _dictionary_sentiment,
     )
     from invictus.agents.flow_agent import _fetch_flow_data, _score_flows
     from invictus.agents.outlook_agent import analyze_management_outlook
@@ -105,7 +111,7 @@ def _run_pipeline(all_selected):
 
             # Earnings (legacy — feeds synthesis)
             progress.progress((step + 1) / total, text=f"Earnings Intelligence: {t}")
-            ctx = _fetch_yfinance_sentiment_context(t)
+            ctx = _fetch_sentiment_context(t)
             result = _analyze_sentiment_with_llm(t, ctx)
             pi_earnings[t] = result if (result and result.get("status") == "Success") else _dictionary_sentiment(ctx)
             step += 1

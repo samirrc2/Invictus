@@ -291,9 +291,7 @@ if _csv_checked:
 def _demo_dialog():
     st.markdown(
         '<div style="font-size:14px;color:#334155;line-height:1.7;margin:4px 0 20px 0;">'
-        'Demo Mode loads a sample portfolio and runs the full '
-        '<b>14-agent Invictus pipeline</b> so you can explore every feature — '
-        'risk analytics, conviction scoring, stress tests, and more. '
+        'Loads a sample portfolio and runs the full Invictus pipeline. '
         'Feel free to play around!</div>',
         unsafe_allow_html=True,
     )
@@ -322,10 +320,8 @@ if st.session_state.get("_demo_confirmed"):
 def _api_limit_dialog():
     st.markdown(
         '<div style="font-size:14px;color:#334155;line-height:1.7;margin:4px 0 20px 0;">'
-        'Apologies — we\'ve hit the API call and token limit for the day. '
-        'Custom portfolio uploads are temporarily unavailable, but you can '
-        'click on <b>Demo Mode</b> to play around with Invictus — '
-        'all 14 agents, full analytics, zero restrictions.</div>',
+        'We\'ve hit the API limit for today. '
+        'Click <b>Demo Mode</b> to explore Invictus with a sample portfolio.</div>',
         unsafe_allow_html=True,
     )
     c1, c2 = st.columns(2)
@@ -471,8 +467,21 @@ if load_btn:
                 if st.session_state.flow_signals and t in st.session_state.flow_signals.get("intel", {}):
                     pi_flows[t] = st.session_state.flow_signals["intel"][t]
                 else:
-                    raw_flow = _fetch_flow_data(t)
-                    pi_flows[t] = _score_flows(t, raw_flow)
+                    try:
+                        raw_flow = _fetch_flow_data(t)
+                        pi_flows[t] = _score_flows(t, raw_flow)
+                    except Exception as _flow_err:
+                        import logging as _lg
+                        _lg.error("Demo PI flow scoring CRASHED for %s: %s", t, _flow_err, exc_info=True)
+                        pi_flows[t] = {
+                            "status": "Error", "flow_composite": 0,
+                            "insider_intelligence": {"score": 0, "red_flags": [], "green_flags": [], "summary": str(_flow_err)},
+                            "fund_accumulation": {"score": 0, "red_flags": [], "green_flags": [], "summary": str(_flow_err)},
+                            "concentration": {"score": 0, "red_flags": [], "green_flags": [], "summary": str(_flow_err)},
+                            "smart_money_pct": 0, "institutional_conviction": 0, "insider_alignment": 0,
+                            "capital_participation": 0, "insider_buys": 0, "insider_sells": 0,
+                            "estimated_accumulation": "neutral", "net_insider_value": 0, "notable_transactions": [],
+                        }
 
                 try:
                     pi_outlook[t] = analyze_management_outlook(t)

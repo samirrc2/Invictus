@@ -10,6 +10,7 @@ Thin router dispatching to per-tab modules.
 from invictus.pages.portfolio import (
     dashboard, risk, pca, vol_regime, stress, attribution,
 )
+from invictus.pages.portfolio._shared import data_disclosure
 
 _ROUTES = {
     "Dashboard": dashboard,
@@ -23,6 +24,9 @@ _ROUTES = {
 
 def render(sub: str):
     """Entry point called by app.py. `sub` is the internal route key."""
+    # Industry-standard data disclosure — always shown at top of analytics
+    data_disclosure()
+
     module = _ROUTES.get(sub)
     if module:
         module.render()

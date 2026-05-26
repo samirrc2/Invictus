@@ -90,7 +90,7 @@ def render(sub):
     # ── Run Pipeline ──────────────────────────────────────────────
     if run_btn and all_selected:
         from invictus.agents.filing_agent import _extract_yfinance_fundamental_signals
-        from invictus.agents.earnings_agent import _fetch_yfinance_sentiment_context, _analyze_sentiment_with_llm, _dictionary_sentiment
+        from invictus.agents.earnings_agent import _fetch_sentiment_context, _analyze_sentiment_with_llm, _dictionary_sentiment
         from invictus.agents.flow_agent import _fetch_flow_data, _score_flows
         from invictus.agents.outlook_agent import analyze_management_outlook
         from invictus.agents.synthesis_agent import _calculate_stock_conviction
@@ -117,7 +117,7 @@ def render(sub):
                 pi_filing[t] = _extract_yfinance_fundamental_signals(t)
                 step += 1
                 progress.progress((step + 1) / total, text=f"Management Intelligence: {t}")
-                ctx = _fetch_yfinance_sentiment_context(t)
+                ctx = _fetch_sentiment_context(t)
                 result = _analyze_sentiment_with_llm(t, ctx)
                 pi_earnings[t] = result if (result and result.get("status") == "Success") else _dictionary_sentiment(ctx)
                 step += 1
