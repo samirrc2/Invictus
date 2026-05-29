@@ -104,9 +104,10 @@ _ROUTES = {
 }
 if st.query_params.get("dev") == "invictus":
     _ROUTES = {"Dev Analytics": [
-        "Architecture", "Agent Performance", "LLM Quality", "ML Monitoring",
-        "Conviction Analytics", "Conviction Intelligence", "Session Analytics",
-        "Data Health", "Cost Analytics", "Eval Metrics", "Backtest",
+        "Error Log", "Architecture", "Agent Performance", "LLM Quality",
+        "ML Monitoring", "Conviction Analytics", "Conviction Intelligence",
+        "Session Analytics", "Data Health", "Cost Analytics", "Eval Metrics",
+        "Backtest",
     ]}
 
 # ── Agent Status Helper ───────────────────────────────────────────────
