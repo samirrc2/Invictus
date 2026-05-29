@@ -53,9 +53,15 @@ def _compute_scenario_impact(
         return {"error": "No price data available for this scenario period."}
 
     # Compute returns over the scenario period
-    first_prices = prices[available].dropna().iloc[0]
-    last_prices = prices[available].dropna().iloc[-1]
-    scenario_returns = (last_prices - first_prices) / first_prices
+    clean_prices = prices[available].dropna()
+    if len(clean_prices) < 2:
+        return {"error": "Insufficient price data for this scenario period after cleaning."}
+    first_prices = clean_prices.iloc[0]
+    last_prices = clean_prices.iloc[-1]
+    # Guard against division by zero
+    safe_first = first_prices.replace(0, np.nan)
+    scenario_returns = (last_prices - first_prices) / safe_first
+    scenario_returns = scenario_returns.fillna(0)
 
     # Apply scenario returns to current portfolio
     ticker_impacts = []
@@ -133,8 +139,8 @@ def run_stress_tests(state: PortfolioState) -> PortfolioState:
         for _, row in holdings.iterrows():
             t = row["Ticker"]
             shares[t] = row["Shares"]
-            if t in prices.columns:
-                current_prices[t] = float(prices[t].iloc[-1])
+            if t in prices.columns and len(prices[t].dropna()) > 0:
+                current_prices[t] = float(prices[t].dropna().iloc[-1])
             else:
                 current_prices[t] = 0.0
 

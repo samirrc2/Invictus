@@ -151,8 +151,11 @@ def compute_portfolio_state(
     - basic stats: vol, beta proxy, drawdown per ticker
     """
     tickers = holdings["Ticker"].tolist()
-    latest_prices = prices[tickers].iloc[-1]
-    prev_prices = prices[tickers].iloc[-2] if len(prices) > 1 else latest_prices
+    available = [t for t in tickers if t in prices.columns]
+    if not available or len(prices) == 0:
+        raise ValueError(f"No price data available for tickers: {tickers}")
+    latest_prices = prices[available].iloc[-1]
+    prev_prices = prices[available].iloc[-2] if len(prices) > 1 else latest_prices
 
     # Market values and weights
     shares = holdings.set_index("Ticker")["Shares"]

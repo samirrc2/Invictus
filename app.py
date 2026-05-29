@@ -57,6 +57,7 @@ for key, default in {
     "agent_status": {},
     "pipeline_running": False,
     "pipeline_errors": [],
+    "node_errors": [],
     "nav_primary": "Portfolio Intelligence",
     "nav_sub": "Overview",
     "show_landing": True,
@@ -419,6 +420,10 @@ if load_btn:
                         log_agent_run(err_node, _run_id, "error", 0,
                                       error_type="AgentError", error_message=err_str)
 
+        # Structured per-node errors with full tracebacks for Dev Console
+        if pstate.node_errors:
+            st.session_state.node_errors = list(pstate.node_errors)
+
         st.session_state.risk_state = {
             "risk_metrics": pstate.risk_metrics,
             "correlation_matrix": pstate.correlation_matrix,
@@ -546,10 +551,21 @@ if load_btn:
         st.rerun()
     except Exception as e:
         import traceback as _tb
+        from datetime import datetime, timezone as _tz
+        _full_tb = _tb.format_exc()
         st.session_state.pipeline_running = False
         st.session_state.pipeline_errors = st.session_state.get("pipeline_errors", []) + [
-            f"[FATAL] {type(e).__name__}: {e}\n{_tb.format_exc()}"
+            f"[FATAL] {type(e).__name__}: {e}\n{_full_tb}"
         ]
+        # Structured fatal error for Dev Console
+        st.session_state.node_errors = st.session_state.get("node_errors", []) + [{
+            "node": "FATAL",
+            "error_type": type(e).__name__,
+            "error_message": str(e),
+            "traceback": _full_tb,
+            "timestamp": datetime.now(_tz.utc).isoformat(),
+            "context": {"stage": "top-level pipeline execution"},
+        }]
         _progress_bar.progress(1.0, text=f"Pipeline error: {e}")
         st.error(f"Execution Error: {e}")
 

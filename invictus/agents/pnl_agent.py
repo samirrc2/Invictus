@@ -27,6 +27,9 @@ def attribute_pnl(state: PortfolioState) -> PortfolioState:
 
     tickers = [t for t in weights if t in returns.columns]
 
+    if not tickers or returns[tickers].dropna(how="all").empty:
+        raise ValueError("No valid return data for any ticker in portfolio.")
+
     # ── Full-period ticker-level contribution ─────────────────────
     # Weight-adjusted daily contributions for every day in the period
     daily_contrib = returns[tickers].copy()
@@ -40,6 +43,8 @@ def attribute_pnl(state: PortfolioState) -> PortfolioState:
     portfolio_cum = cumulative_contrib.sum(axis=1)
 
     # Latest daily returns (for backward compat)
+    if len(returns[tickers]) == 0:
+        raise ValueError("Returns DataFrame is empty — no data to attribute.")
     latest_returns = returns[tickers].iloc[-1]
 
     # Total-period contribution per ticker (sum of all daily contributions)
@@ -94,9 +99,18 @@ def attribute_pnl(state: PortfolioState) -> PortfolioState:
         vol_regime = state.vol_regime["current_regime"]
 
     # ── Build contribution table (full period) ────────────────────
+    def _safe_return(t):
+        """Compute total return for ticker, returning 0 if data is empty."""
+        if t not in prices.columns:
+            return 0.0
+        px = prices[t].dropna()
+        if len(px) < 2 or px.iloc[0] == 0:
+            return 0.0
+        return float(px.iloc[-1] / px.iloc[0] - 1)
+
     contrib_df = pd.DataFrame([
         {"Ticker": t, "Weight": weights.get(t, 0),
-         "Return": float(prices[t].iloc[-1] / prices[t].iloc[0] - 1) if t in prices.columns else 0,
+         "Return": _safe_return(t),
          "Contribution": float(total_contrib[t])}
         for t in tickers
     ]).sort_values("Contribution", ascending=False)

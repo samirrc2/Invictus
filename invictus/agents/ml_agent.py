@@ -272,7 +272,7 @@ def _compute_features(
         ret = returns[ticker].dropna()
         px = prices[ticker].dropna()
 
-        if len(ret) < 60:
+        if len(ret) < 60 or len(px) < 60:
             continue
 
         # ── Momentum (log-return sums over windows) ──

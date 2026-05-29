@@ -53,8 +53,32 @@ from invictus.agents.graph_state import PortfolioState
 _node_registry: Dict[str, Callable] = {}
 
 
+def _gather_node_context(state: PortfolioState, name: str) -> dict:
+    """Capture lightweight input context for error diagnostics."""
+    ctx = {}
+    try:
+        if state.weights:
+            ctx["tickers"] = list(state.weights.keys())
+        if state.returns is not None and hasattr(state.returns, "shape"):
+            ctx["returns_shape"] = list(state.returns.shape)
+            ctx["returns_date_range"] = [
+                str(state.returns.index.min()),
+                str(state.returns.index.max()),
+            ]
+        if state.prices is not None and hasattr(state.prices, "shape"):
+            ctx["prices_shape"] = list(state.prices.shape)
+    except Exception:
+        pass  # context gathering must never fail the node
+    return ctx
+
+
 def register_node(name: str):
-    """Decorator to register a function as a graph node."""
+    """Decorator to register a function as a graph node.
+
+    Captures full traceback + input context on failure so the Dev
+    Console can show exactly which node failed, why, and what data
+    it was operating on.
+    """
     def decorator(fn: Callable):
         @wraps(fn)
         def wrapper(state: PortfolioState) -> PortfolioState:
@@ -63,6 +87,11 @@ def register_node(name: str):
                 state = fn(state)
                 state.mark_complete(name)
             except Exception as e:
+                tb = traceback.format_exc()
+                ctx = _gather_node_context(state, name)
+                # Structured error with full traceback
+                state.add_node_error(name, e, tb, ctx)
+                # Legacy string (backward compat with existing consumers)
                 state.add_error(name, f"{type(e).__name__}: {str(e)}")
                 state.mark_complete(name)  # continue graph even on error
             return state
@@ -229,6 +258,7 @@ class PipelineState(TypedDict, total=False):
     conviction_synthesis: Optional[Dict[str, Any]]
     # Orchestration tracking — use add reducer for fan-out merge
     errors: Annotated[List[str], operator.add]
+    node_errors: Annotated[List[Dict[str, Any]], operator.add]
     completed_nodes: Annotated[List[str], operator.add]
     current_node: Optional[str]
 
@@ -251,6 +281,7 @@ def _wrap_node(node_fn: Callable) -> Callable:
 
         prev_completed_len = len(pstate.completed_nodes)
         prev_errors_len = len(pstate.errors)
+        prev_node_errors_len = len(pstate.node_errors)
 
         # Run the actual agent (with error handling from register_node)
         pstate = node_fn(pstate)
@@ -262,6 +293,8 @@ def _wrap_node(node_fn: Callable) -> Callable:
                 result[k] = pstate.completed_nodes[prev_completed_len:]
             elif k == "errors":
                 result[k] = pstate.errors[prev_errors_len:]
+            elif k == "node_errors":
+                result[k] = pstate.node_errors[prev_node_errors_len:]
             else:
                 result[k] = getattr(pstate, k)
         return result
@@ -369,6 +402,7 @@ class InvictusGraph:
             init_state[k] = getattr(state, k)
         # Ensure list fields are initialized for the add reducer
         init_state.setdefault("errors", [])
+        init_state.setdefault("node_errors", [])
         init_state.setdefault("completed_nodes", [])
 
         if progress_callback or skip_nodes or only_nodes:

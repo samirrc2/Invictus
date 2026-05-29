@@ -5,6 +5,7 @@ Every agent reads from and writes to this shared state.
 """
 from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field
+from datetime import datetime, timezone
 import pandas as pd
 
 
@@ -113,6 +114,10 @@ class PortfolioState(BaseModel):
 
     # ── Orchestration Metadata ─────────────────────────────────────────
     errors: List[str] = Field(default_factory=list, description="Errors from any node")
+    node_errors: List[Dict[str, Any]] = Field(
+        default_factory=list,
+        description="Structured per-node error log with full tracebacks",
+    )
     completed_nodes: List[str] = Field(
         default_factory=list, description="Nodes that have completed"
     )
@@ -125,6 +130,24 @@ class PortfolioState(BaseModel):
         return self
 
     def add_error(self, node_name: str, error: str) -> "PortfolioState":
-        """Record an error from a node."""
+        """Record an error from a node (legacy string format)."""
         self.errors.append(f"[{node_name}] {error}")
+        return self
+
+    def add_node_error(
+        self,
+        node_name: str,
+        error: Exception,
+        tb: str,
+        context: Optional[Dict[str, Any]] = None,
+    ) -> "PortfolioState":
+        """Record a structured error with full traceback and data context."""
+        self.node_errors.append({
+            "node": node_name,
+            "error_type": type(error).__name__,
+            "error_message": str(error),
+            "traceback": tb,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "context": context or {},
+        })
         return self
