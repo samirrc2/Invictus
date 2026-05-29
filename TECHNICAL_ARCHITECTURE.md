@@ -1,39 +1,39 @@
 # Invictus — Technical Architecture & Mathematical Framework
 
 **Invictus Equity Portfolio Intelligence Platform**
-A multi-agent AI system for institutional-grade portfolio analytics, conviction synthesis, and allocation simulation.
+A multi-stage analytical pipeline for institutional-grade portfolio analytics, conviction synthesis, and allocation simulation.
 
 ---
 
 ## System Overview
 
-Invictus orchestrates 15 specialized agents through a LangGraph StateGraph pipeline to produce portfolio intelligence across three domains: risk analytics, conviction intelligence, and allocation simulation. The platform processes real-time market data from yfinance and FMP, applies quantitative models, and synthesizes results through a conviction engine that outputs calibrated outperformance probabilities.
+Invictus orchestrates 15 specialized compute nodes through a LangGraph StateGraph pipeline to produce portfolio intelligence across three domains: risk analytics, conviction intelligence, and allocation simulation. The platform processes real-time market data from yfinance and FMP, applies quantitative models, and synthesizes results through a conviction engine that outputs calibrated outperformance probabilities.
 
 ### Architecture
 
 ```
-Data Layer            Agent Layer                Intelligence Layer        Presentation
+Data Layer            Compute Layer              Intelligence Layer        Presentation
 ─────────────       ──────────────────         ────────────────────      ────────────
-Yahoo Finance  →    Risk Analytics Agent    →  Portfolio Intelligence →  Streamlit UI
-FMP API        →    PCA Factor Agent        →
-               →    Vol Regime Agent        →
-               →    Stress Test Agent       →
-               →    Greeks Agent            →
-               →    P&L Attribution Agent   →
-               →    Flow Agent              →  Conviction Intelligence
-               →    Filing Intel Agent      →
-               →    Earnings Intel Agent    →
-               →    10-K RAG Agent          →
-               →    Outlook Agent           →
-               →    ML Accumulation Agent   →
-               →    Synthesis Agent         →  Allocation Engine
-               →    Commentary Agent (LLM)  →
-               →    Evaluation Agent        →  Dev Analytics
+Yahoo Finance  →    Risk Analytics          →  Portfolio Intelligence →  Streamlit UI
+FMP API        →    PCA Factor Decomp       →
+               →    Vol Regime Detection    →
+               →    Stress Testing          →
+               →    Greeks (Black-Scholes)  →
+               →    P&L Attribution         →
+               →    Flow Scoring            →  Conviction Intelligence
+               →    Filing Intel            →
+               →    Earnings Intel          →
+               →    10-K RAG Retrieval      →
+               →    Management Outlook      →
+               →    ML Accumulation         →
+               →    Conviction Synthesis    →  Allocation Engine
+               →    Commentary (LLM)        →
+               →    Eval Harness            →  Dev Analytics
 ```
 
 ### Orchestration
 
-The LangGraph StateGraph executes agents in a staged dependency graph with fan-out/fan-in synchronization:
+The LangGraph StateGraph executes nodes in a staged dependency graph with fan-out/fan-in synchronization:
 
 ```
 Stage 0: load_portfolio
@@ -47,9 +47,9 @@ Stage 5: generate_commentary
 Stage 6: evaluate_commentary
 ```
 
-15 registered agent nodes + 2 barrier nodes = 17 graph nodes total. Stages 1–2 execute up to 10 agents in parallel; stages 3–6 run sequentially.
+15 registered compute nodes + 2 barrier nodes = 17 graph nodes total. Stages 1–2 execute up to 10 nodes in parallel; stages 3–6 run sequentially.
 
-The shared state container (`PortfolioState`) is a Pydantic v2 model that accumulates results across nodes — each agent reads what it needs and writes its outputs without coupling to other agents.
+The shared state container (`PortfolioState`) is a Pydantic v2 model that accumulates results across nodes — each node reads what it needs and writes its outputs without coupling to other nodes.
 
 ---
 
@@ -333,7 +333,7 @@ Four signal channels, each normalized to `[-1, +1]`:
 ```
 S_fundamental = 0.40·conviction + 0.30·guidance + 0.30·risk_signal
 S_management  = 0.70·confidence + 0.30·pressure_signal
-S_flows       = flow_composite  (from flow agent, already in [-1,1])
+S_flows       = flow_composite  (from flow node, already in [-1,1])
 S_technical   = (bayesian_posterior - 0.5) × 2  → maps [0,1] → [-1,1]
 ```
 
@@ -593,16 +593,16 @@ LLM extracts portfolio holdings from arbitrary brokerage CSV formats. Fallback: 
 Collectors (6)  →  SQLite Store  →  Analyzers (3)  →  Dev Console (11 tabs)
 ```
 
-**Collectors:** Agent execution latency, LLM token usage, ML prediction tracking, conviction score evolution, session events, data fetch health.
+**Collectors:** Node execution latency, LLM token usage, ML prediction tracking, conviction score evolution, session events, data fetch health.
 
-**Analyzers:** Hallucination detection (sentiment bias, determinism, fallback rates), drift analysis (prediction stability, conviction stability), calibration (agent performance, data pipeline health).
+**Analyzers:** Hallucination detection (sentiment bias, determinism, fallback rates), drift analysis (prediction stability, conviction stability), calibration (node performance, data pipeline health).
 
 ### 12.2 LLM Quality Metrics
 
 - **Fallback Rate** — percentage of LLM calls that fell through to dictionary-based fallback
 - **Sentiment Bias** — mean sentiment across all calls (detects systematic positive/negative lean)
 - **Determinism Score** — same prompt hash → same output? Measures output stability
-- **Token Economics** — cost per call, cost per pipeline run, per-agent consumption
+- **Token Economics** — cost per call, cost per pipeline run, per-node consumption
 
 ### 12.3 ML Monitoring
 
@@ -616,7 +616,7 @@ Collectors (6)  →  SQLite Store  →  Analyzers (3)  →  Dev Console (11 tabs
 
 ### 13.1 Numerical Grounding Evaluator
 
-Cross-references numbers in LLM commentary against actual `PortfolioState` data. Extracts percentages, dollar amounts, decimals, and basis points from text, then matches against upstream agent outputs. Target grounding rate: >85%.
+Cross-references numbers in LLM commentary against actual `PortfolioState` data. Extracts percentages, dollar amounts, decimals, and basis points from text, then matches against upstream node outputs. Target grounding rate: >85%.
 
 ### 13.2 Consistency Evaluator
 
@@ -634,11 +634,11 @@ For each evaluation date, runs a lightweight conviction mini-pipeline using ONLY
 3. Synthesize into conviction probability
 4. Compare against actual forward returns
 
-LLM-dependent agents are skipped (cost ~$50+ for 120 dates; historical transcripts not point-in-time accessible). Analyzes hit rates, calibration, and simulated P&L.
+LLM-dependent nodes are skipped (cost ~$50+ for 120 dates; historical transcripts not point-in-time accessible). Analyzes hit rates, calibration, and simulated P&L.
 
 ### 13.4 Cost Analyzer
 
-Token economics, prompt caching opportunity analysis, cost-per-pipeline-run breakdown by agent.
+Token economics, prompt caching opportunity analysis, cost-per-pipeline-run breakdown by node.
 
 ---
 
@@ -665,7 +665,7 @@ Token economics, prompt caching opportunity analysis, cost-per-pipeline-run brea
 ```
 app.py                              — Thin Streamlit routing shell
 invictus/
-  agents/                           — 15 agent nodes + orchestrator + state
+  agents/                           — 15 compute nodes + orchestrator + state
     orchestrator.py                 — LangGraph StateGraph — 15 nodes, 2 barriers
     graph_state.py                  — Pydantic v2 PortfolioState container
     risk_agent.py                   — VaR, CVaR, Sharpe, Sortino, MCTR, drawdown
@@ -718,4 +718,4 @@ invictus/
 
 ---
 
-*Built by Samir Chincholikar. Platform architecture, agent design, conviction mathematics, and observability system designed for institutional portfolio intelligence workflows.*
+*Built by Samir Chincholikar. Platform architecture, pipeline design, conviction mathematics, and observability system designed for institutional portfolio intelligence workflows.*

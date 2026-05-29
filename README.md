@@ -2,7 +2,7 @@
 
 **Institutional-Grade Equity Portfolio Intelligence Platform**
 
-A multi-agent system built on LangGraph that orchestrates 15 specialized agents across a parallel DAG pipeline — producing risk analytics, conviction signals, and AI-generated commentary for equity portfolios.
+A multi-stage analytical pipeline built on LangGraph that orchestrates 15 specialized compute nodes across a parallel DAG — producing risk analytics, conviction signals, and AI-generated commentary for equity portfolios.
 
 **[Live Demo →](https://invictus-7iskuf67l87iksp8vunmag.streamlit.app/)**
 
@@ -20,7 +20,7 @@ Invictus takes a portfolio of equity holdings (tickers, shares, cost basis) and 
 
 **Bayesian Synthesis** — A conviction engine that combines all upstream signals into a single outperformance probability per ticker, with dynamic signal weighting, cross-signal agreement detection, and Monte Carlo confidence intervals.
 
-An AI commentary layer and numerical grounding evaluator sit on top — the LLM generates a portfolio narrative, and the eval harness verifies every number in it traces back to an upstream agent output.
+An AI commentary layer and numerical grounding evaluator sit on top — the LLM generates a portfolio narrative, and the eval harness verifies every number in it traces back to an upstream node output.
 
 ---
 
@@ -51,16 +51,16 @@ An AI commentary layer and numerical grounding evaluator sit on top — the LLM 
               evaluate_commentary
 ```
 
-Built on **LangGraph StateGraph** with fan-out/fan-in edges and barrier nodes for parallel execution. 15 registered agent nodes + 2 synchronization barriers. Stages 1–2 run up to 10 agents in parallel; stages 3–7 execute sequentially.
+Built on **LangGraph StateGraph** with fan-out/fan-in edges and barrier nodes for parallel execution. 15 registered compute nodes + 2 synchronization barriers. Stages 1–2 run up to 10 nodes in parallel; stages 3–7 execute sequentially.
 
-The shared state container (`PortfolioState`) is a Pydantic v2 model — each agent reads what it needs and writes its outputs without coupling to other agents.
+The shared state container (`PortfolioState`) is a Pydantic v2 model — each node reads what it needs and writes its outputs without coupling to other nodes.
 
 ---
 
-## Agents
+## Pipeline Nodes
 
-| Agent | What It Computes |
-|-------|-----------------|
+| Node | What It Computes |
+|------|-----------------|
 | **Risk** | Annualized vol, Sharpe, Sortino, VaR/CVaR (95%), max drawdown, beta, MCTR, correlation matrix |
 | **PCA** | Principal component decomposition — identifies hidden factor exposures across holdings |
 | **Vol Regime** | K-Means clustering on rolling volatility → Low / Medium / High regimes with transition history |
@@ -75,13 +75,13 @@ The shared state container (`PortfolioState`) is a Pydantic v2 model — each ag
 | **ML Accumulation** | Bayesian signal model — sequential updating with log-linear Bayes factors over fundamental + technical features |
 | **Synthesis** | Dynamic-weighted composite of 4 signal sources → single conviction probability with Monte Carlo CI |
 | **Commentary** | LLM-generated portfolio narrative from all upstream signals |
-| **Eval** | Numerical grounding checks + cross-agent consistency + hallucination detection |
+| **Eval** | Numerical grounding checks + cross-node consistency + hallucination detection |
 
 ---
 
-## Flow Agent — Scoring Detail
+## Flow Scoring — Methodology Detail
 
-The institutional flow agent is the most methodologically complex agent. Three scored sub-components:
+The institutional flow node is the most methodologically complex module. Three scored sub-components:
 
 **Insider Intelligence (0.35)** — Signal comes from what percentage of their stake an insider transacted, not raw dollar value. A CEO selling $340M of AAPL is noise if it's 1% of their stake. Role-weighted (CEO/CFO = 3×, VP/Director = 2×) with 90-day exponential time decay and materiality-based exit detection.
 
@@ -95,11 +95,11 @@ The institutional flow agent is the most methodologically complex agent. Three s
 
 Accessible via the Developer Console (`?dev=invictus` URL parameter), the platform includes:
 
-**Evaluation** — Numerical grounding evaluator (verifies LLM numbers trace to upstream outputs, target >85% grounding rate), cross-agent consistency analysis, answer stability measurement (coefficient of variation across runs), LLM cost breakdowns, and a walk-forward backtest engine that replays conviction signals against actual forward returns.
+**Evaluation** — Numerical grounding evaluator (verifies LLM numbers trace to upstream outputs, target >85% grounding rate), cross-node consistency analysis, answer stability measurement (coefficient of variation across runs), LLM cost breakdowns, and a walk-forward backtest engine that replays conviction signals against actual forward returns.
 
-**Observability** — 6 telemetry collectors (agent latency, LLM tokens, ML drift, conviction signals, data health, sessions) writing to a local SQLite store. 3 diagnostic analyzers (calibration, drift, hallucination) process telemetry into alerts.
+**Observability** — 6 telemetry collectors (node latency, LLM tokens, ML drift, conviction signals, data health, sessions) writing to a local SQLite store. 3 diagnostic analyzers (calibration, drift, hallucination) process telemetry into alerts.
 
-**Dev Console** — 11 tabs: Architecture, Agent Performance, LLM Quality, ML Monitoring, Conviction Analytics, Conviction Intel, Session Analytics, Data Health, Cost Analysis, Eval Metrics, Backtest.
+**Dev Console** — 11 tabs: Architecture, Node Performance, LLM Quality, ML Monitoring, Conviction Analytics, Conviction Intel, Session Analytics, Data Health, Cost Analysis, Eval Metrics, Backtest.
 
 ---
 
@@ -124,7 +124,7 @@ Accessible via the Developer Console (`?dev=invictus` URL parameter), the platfo
 
 ```
 invictus/
-├── agents/              # 15 agent nodes + orchestrator + state schema
+├── agents/              # 15 compute nodes + orchestrator + state schema
 │   ├── orchestrator.py  # LangGraph StateGraph — 15 nodes, 2 barriers, 7 stages
 │   ├── graph_state.py   # Pydantic PortfolioState container
 │   ├── risk_agent.py    # VaR, CVaR, Sharpe, Sortino, drawdown, MCTR
@@ -132,7 +132,7 @@ invictus/
 │   ├── synthesis_agent.py # Bayesian conviction synthesis + Monte Carlo
 │   ├── ml_agent.py      # Bayesian accumulation signal model (v4)
 │   ├── outlook_agent.py # Management outlook — 6 dimensions + credibility
-│   └── ...              # 8 more agents
+│   └── ...              # 8 more nodes
 ├── pages/
 │   ├── landing/         # How It Works — system architecture + methodology
 │   ├── portfolio/       # 7 sub-tabs: dashboard, risk, PCA, vol, stress, greeks, P&L
@@ -184,13 +184,13 @@ The app opens with a landing page explaining the system architecture and methodo
 
 ## Design Decisions
 
-**LangGraph over sequential execution** — The fan-out/fan-in pattern runs 6 risk agents simultaneously in Stage 1, then 4 conviction agents in Stage 2. Barrier nodes ensure downstream agents see complete upstream results.
+**LangGraph over sequential execution** — The fan-out/fan-in pattern runs 6 risk nodes simultaneously in Stage 1, then 4 conviction nodes in Stage 2. Barrier nodes ensure downstream nodes see complete upstream results.
 
-**Materiality-based insider scoring** — Raw dollar values mislead on mega-caps. Tim Cook selling $105M of AAPL sounds alarming but is 15% of his 0.02% stake — routine 10b5-1 execution. The flow agent scores by `tx_pct_of_stake` to separate signal from noise.
+**Materiality-based insider scoring** — Raw dollar values mislead on mega-caps. Tim Cook selling $105M of AAPL sounds alarming but is 15% of his 0.02% stake — routine 10b5-1 execution. The flow module scores by `tx_pct_of_stake` to separate signal from noise.
 
 **Bayesian synthesis over weighted averages** — Signal weights adjust dynamically based on data quality (confidence gates) and cross-signal agreement. When fundamental and flow signals agree, the composite strengthens; when they conflict, the output is appropriately uncertain.
 
-**Full evaluation harness** — LLM outputs are non-deterministic. The grounding evaluator catches when commentary claims "Sharpe improved to 1.4" but the risk agent computed 1.2. Without this, the system would occasionally produce plausible but factually wrong analysis.
+**Full evaluation harness** — LLM outputs are non-deterministic. The grounding evaluator catches when commentary claims "Sharpe improved to 1.4" but the risk node computed 1.2. Without this, the system would occasionally produce plausible but factually wrong analysis.
 
 ---
 

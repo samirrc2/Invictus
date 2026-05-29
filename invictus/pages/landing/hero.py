@@ -73,7 +73,7 @@ def _render_hero():
         f'letter-spacing:0.14em;margin-bottom:2px;">INVICTUS</div>'
         f'<div style="font-size:13px;font-weight:600;color:{_B};'
         f'letter-spacing:0.08em;text-transform:uppercase;'
-        f'margin-bottom:10px;">Multi-Agent AI Platform for Equity Portfolio Intelligence</div>'
+        f'margin-bottom:10px;">Analytical Intelligence Platform for Equity Portfolios</div>'
         # Gradient divider
         f'<div style="width:80px;height:3px;'
         f'background:linear-gradient(90deg,{_B},#60a5fa,{_B});'
@@ -84,11 +84,12 @@ def _render_hero():
         f'<span style="font-weight:700;color:{_S900};">$5,000 to invest.</span> '
         f'<span style="font-weight:700;color:{_S900};">Three stocks.</span> '
         f'Which one actually fits your portfolio? '
-        f'Invictus runs '
-        f'<span style="font-weight:700;color:{_B};">14 coordinated AI agents</span> '
+        f'Invictus runs a '
+        f'<span style="font-weight:700;color:{_B};">multi-stage analytical pipeline</span> '
         f'across '
-        f'<span style="font-weight:700;color:{_B};">7 pipeline stages</span> '
-        f'to give you a quantitative answer — not a gut feeling.</div>'
+        f'<span style="font-weight:700;color:{_B};">7 parallel stages</span> '
+        f'— combining quantitative risk models, institutional flow scoring, and LLM intelligence '
+        f'to give you a conviction signal, not a gut feeling.</div>'
         f'</div>', unsafe_allow_html=True)
 
 
@@ -98,7 +99,7 @@ def _render_topology():
                 f'End-to-end LangGraph pipeline from portfolio load to evaluated AI commentary.</div>',
                 unsafe_allow_html=True)
 
-    # Same pattern as Agent Data Flow — flex:1 groups, pills wrap inside
+    # Same pattern as Pipeline Data Flow — flex:1 groups, pills wrap inside
     def _topo_grp(label, items):
         boxes = "".join(_pill_sm(n) for n in items)
         return (
@@ -126,7 +127,7 @@ def _render_topology():
 def _render_numbers():
     _sp(10)
     nums = [
-        ("14", "Agents"), ("7", "Stages"), ("4", "Signal Sources"),
+        ("15", "Nodes"), ("7", "Stages"), ("4", "Signal Sources"),
     ]
     pills = "".join(
         f'<div style="flex:1;border:1px solid {_S200};border-radius:4px;'
@@ -214,7 +215,7 @@ def _render_methodology():
             f'border-radius:6px;padding:12px 14px;margin-bottom:12px;">'
             f'<div style="font-size:{_FSS};font-weight:700;color:{_B};'
             f'text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">'
-            f'Bayesian Accumulation Model (ML Agent)</div>'
+            f'Bayesian Accumulation Model</div>'
             f'<div style="font-family:monospace;font-size:{_FS};color:{_S700};line-height:1.9;">'
             f'BF<sub>i</sub>(x) = exp(κ<sub>i</sub> · g<sub>i</sub>(x))<br>'
             f'posterior_odds = prior_odds × ∏ BF<sub>i</sub>(x<sub>i</sub>)<br>'
@@ -356,7 +357,7 @@ def _render_code_arch():
         f'</div>'
         f'</div>', unsafe_allow_html=True)
 
-    # Agent data flow — single horizontal row with labeled groups
+    # Pipeline data flow — single horizontal row with labeled groups
     def _flow_grp(title, items):
         boxes = "".join(_pill_sm(i) for i in items)
         return (
@@ -371,7 +372,7 @@ def _render_code_arch():
         f'<div style="border:1px solid {_S200};border-radius:8px;background:{_S50};'
         f'padding:12px 16px;margin-bottom:12px;">'
         f'<div style="font-size:{_FSS};font-weight:700;color:{_S400};'
-        f'letter-spacing:0.06em;margin-bottom:8px;">AGENT DATA FLOW</div>'
+        f'letter-spacing:0.06em;margin-bottom:8px;">PIPELINE DATA FLOW</div>'
         f'<div style="display:flex;align-items:center;gap:0;width:100%;">'
         f'{_flow_grp("DATA SOURCES", ["yFinance API", "FMP API", "13F Filings", "Transcripts"])}'
         f'{_arrow()}'
