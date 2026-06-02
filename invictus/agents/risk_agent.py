@@ -245,18 +245,15 @@ def compute_risk(state: PortfolioState) -> PortfolioState:
             f"Check that all tickers have valid price history."
         )
 
-    # ── Diagnostic: inspect weight values for NaN ──────────────
-    nan_weights = {k: v for k, v in weights.items() if pd.isna(v)}
-    if nan_weights:
-        raise ValueError(
-            f"NaN weight values detected for: {nan_weights}. "
-            f"This means prices were missing for those tickers in portfolio_loader. "
-            f"All weights: {weights}"
-        )
-
-    # ── Diagnostic: check returns for column-level NaN density ──
-    nan_pct = {c: float(returns[c].isna().mean()) for c in returns.columns}
-    heavy_nan = {c: f"{p:.0%}" for c, p in nan_pct.items() if p > 0.5}
+    # Filter out NaN weights (tickers with no price data from yfinance)
+    clean_weights = {k: v for k, v in weights.items() if not pd.isna(v)}
+    if not clean_weights:
+        raise ValueError("All weight values are NaN — no valid price data for any ticker.")
+    # Renormalize if we dropped any tickers
+    if len(clean_weights) < len(weights):
+        w_sum = sum(clean_weights.values())
+        clean_weights = {k: v / w_sum for k, v in clean_weights.items()}
+    weights = clean_weights
 
     # Portfolio-level return series
     port_returns = _portfolio_returns(returns, weights)
@@ -264,11 +261,7 @@ def compute_risk(state: PortfolioState) -> PortfolioState:
     if len(port_returns.dropna()) == 0:
         raise ValueError(
             f"Portfolio return series is empty after weighting. "
-            f"Returns shape: {returns.shape}, weight tickers: {list(weights.keys())}, "
-            f"weight values: {weights}, "
-            f"NaN density per column: {nan_pct}, "
-            f"port_returns sample: {port_returns.head(5).tolist()}, "
-            f"port_returns NaN count: {port_returns.isna().sum()}/{len(port_returns)}"
+            f"Returns shape: {returns.shape}, weight tickers: {list(weights.keys())}"
         )
 
     # Core risk metrics

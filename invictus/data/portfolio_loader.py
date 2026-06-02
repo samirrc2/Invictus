@@ -163,18 +163,28 @@ def compute_portfolio_state(
     available = [t for t in tickers if t in prices.columns]
     if not available or len(prices) == 0:
         raise ValueError(f"No price data available for tickers: {tickers}")
-    latest_prices = prices[available].iloc[-1]
+
+    # Get last prices and drop tickers whose entire price column is NaN
+    # (yfinance sometimes returns a column header with no actual data).
+    latest_prices = prices[available].iloc[-1].dropna()
+    available = [t for t in available if t in latest_prices.index]
+    if not available:
+        raise ValueError(f"All tickers have NaN prices: {tickers}")
+
     prev_prices = prices[available].iloc[-2] if len(prices) > 1 else latest_prices
 
-    # Market values and weights
-    shares = holdings.set_index("Ticker")["Shares"]
-    cost_basis = holdings.set_index("Ticker")["CostBasis"]
-    market_values = latest_prices * shares
+    # Subset holdings to available tickers only — avoids NaN from
+    # pandas index alignment when tickers are missing from prices.
+    h = holdings.set_index("Ticker")
+    shares = h.loc[h.index.isin(available), "Shares"]
+    cost_basis = h.loc[h.index.isin(available), "CostBasis"]
+
+    market_values = latest_prices[available] * shares
     total_value = market_values.sum()
     weights = market_values / total_value
 
     # Daily P&L
-    daily_pnl = (latest_prices - prev_prices) * shares
+    daily_pnl = (latest_prices[available] - prev_prices) * shares
     total_daily_pnl = daily_pnl.sum()
     daily_return_pct = total_daily_pnl / (total_value - total_daily_pnl) * 100
 
@@ -183,9 +193,7 @@ def compute_portfolio_state(
     total_unrealized_pnl = total_value - total_cost
     unrealized_pnl_pct = (total_unrealized_pnl / total_cost) * 100
 
-    # Per-ticker stats — use `available` to avoid creating NaN columns
-    # for tickers that yfinance didn't return data for, which would
-    # cause compute_returns to produce an entirely empty DataFrame.
+    # Per-ticker stats — use `available` to avoid NaN columns
     returns = compute_returns(prices[available])
     ann_vol = returns.std() * np.sqrt(TRADING_DAYS_PER_YEAR)
 
@@ -200,26 +208,26 @@ def compute_portfolio_state(
     betas = {}
     if benchmark_col:
         bench_returns = compute_returns(prices[[benchmark_col]])[benchmark_col]
-        for t in tickers:
+        for t in available:
             if t in returns.columns:
                 cov = returns[t].cov(bench_returns)
                 var = bench_returns.var()
                 betas[t] = cov / var if var > 0 else np.nan
 
-    # Build summary table
+    # Build summary table — use `available` so no NaN lookups
     summary = pd.DataFrame({
-        "Ticker": tickers,
-        "Shares": [shares[t] for t in tickers],
-        "Cost Basis": [cost_basis[t] for t in tickers],
-        "Current Price": [latest_prices[t] for t in tickers],
-        "Market Value": [market_values[t] for t in tickers],
-        "Weight (%)": [weights[t] * 100 for t in tickers],
-        "Daily P&L ($)": [daily_pnl[t] for t in tickers],
-        "Unrealized P&L ($)": [(latest_prices[t] - cost_basis[t]) * shares[t] for t in tickers],
-        "Unrealized P&L (%)": [((latest_prices[t] / cost_basis[t]) - 1) * 100 for t in tickers],
-        "Ann. Volatility": [ann_vol[t] if t in ann_vol.index else np.nan for t in tickers],
-        "Max Drawdown": [max_drawdown[t] if t in max_drawdown.index else np.nan for t in tickers],
-        "Beta (vs SPY)": [betas.get(t, np.nan) for t in tickers],
+        "Ticker": available,
+        "Shares": [shares[t] for t in available],
+        "Cost Basis": [cost_basis[t] for t in available],
+        "Current Price": [latest_prices[t] for t in available],
+        "Market Value": [market_values[t] for t in available],
+        "Weight (%)": [weights[t] * 100 for t in available],
+        "Daily P&L ($)": [daily_pnl[t] for t in available],
+        "Unrealized P&L ($)": [(latest_prices[t] - cost_basis[t]) * shares[t] for t in available],
+        "Unrealized P&L (%)": [((latest_prices[t] / cost_basis[t]) - 1) * 100 for t in available],
+        "Ann. Volatility": [ann_vol[t] if t in ann_vol.index else np.nan for t in available],
+        "Max Drawdown": [max_drawdown[t] if t in max_drawdown.index else np.nan for t in available],
+        "Beta (vs SPY)": [betas.get(t, np.nan) for t in available],
     })
 
     return {
