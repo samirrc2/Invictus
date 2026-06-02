@@ -135,8 +135,17 @@ def fetch_live_prices(tickers: list) -> pd.Series:
 
 
 def compute_returns(prices: pd.DataFrame) -> pd.DataFrame:
-    """Compute daily log returns."""
-    return np.log(prices / prices.shift(1)).dropna()
+    """Compute daily log returns.
+
+    Uses dropna(how='all') so that a single column with NaN doesn't
+    wipe out the entire row for every other ticker.  Individual NaN
+    cells are left for downstream callers to handle per-series.
+    """
+    raw = np.log(prices / prices.shift(1))
+    # Drop only rows that are ALL NaN (e.g. the first shifted row).
+    # Per-column NaN (missing ticker days) are left intact so that
+    # other columns' valid data is preserved.
+    return raw.dropna(how="all")
 
 
 def compute_portfolio_state(
@@ -174,8 +183,10 @@ def compute_portfolio_state(
     total_unrealized_pnl = total_value - total_cost
     unrealized_pnl_pct = (total_unrealized_pnl / total_cost) * 100
 
-    # Per-ticker stats
-    returns = compute_returns(prices[tickers])
+    # Per-ticker stats — use `available` to avoid creating NaN columns
+    # for tickers that yfinance didn't return data for, which would
+    # cause compute_returns to produce an entirely empty DataFrame.
+    returns = compute_returns(prices[available])
     ann_vol = returns.std() * np.sqrt(TRADING_DAYS_PER_YEAR)
 
     # Drawdown per ticker

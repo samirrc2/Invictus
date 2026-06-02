@@ -39,11 +39,17 @@ def _portfolio_returns(returns: pd.DataFrame, weights: Dict[str, float]) -> pd.S
 
 
 def _annualized_vol(returns: pd.Series) -> float:
-    return returns.std() * np.sqrt(TRADING_DAYS_PER_YEAR)
+    clean = returns.dropna()
+    if len(clean) < 2:
+        return 0.0
+    return clean.std() * np.sqrt(TRADING_DAYS_PER_YEAR)
 
 
 def _annualized_return(returns: pd.Series) -> float:
-    return returns.mean() * TRADING_DAYS_PER_YEAR
+    clean = returns.dropna()
+    if len(clean) == 0:
+        return 0.0
+    return clean.mean() * TRADING_DAYS_PER_YEAR
 
 
 def _sharpe_ratio(returns: pd.Series) -> float:
@@ -82,7 +88,10 @@ def _omega_ratio(returns: pd.Series, threshold: float = 0.0) -> float:
 
 
 def _max_drawdown(returns: pd.Series) -> float:
-    cumulative = (1 + returns).cumprod()
+    clean = returns.dropna()
+    if len(clean) == 0:
+        return 0.0
+    cumulative = (1 + clean).cumprod()
     running_max = cumulative.cummax()
     drawdown = (cumulative - running_max) / running_max
     return drawdown.min()
@@ -90,28 +99,40 @@ def _max_drawdown(returns: pd.Series) -> float:
 
 def _max_drawdown_series(returns: pd.Series) -> pd.Series:
     """Return the full drawdown series for charting."""
-    cumulative = (1 + returns).cumprod()
+    clean = returns.dropna()
+    if len(clean) == 0:
+        return pd.Series(dtype=float)
+    cumulative = (1 + clean).cumprod()
     running_max = cumulative.cummax()
     return (cumulative - running_max) / running_max
 
 
 def _var_historical(returns: pd.Series, confidence: float = 0.95) -> float:
     """Historical VaR at given confidence level."""
-    return np.percentile(returns, (1 - confidence) * 100)
+    clean = returns.dropna()
+    if len(clean) == 0:
+        return 0.0
+    return np.percentile(clean, (1 - confidence) * 100)
 
 
 def _var_parametric(returns: pd.Series, confidence: float = 0.95) -> float:
     """Parametric (Gaussian) VaR."""
+    clean = returns.dropna()
+    if len(clean) == 0:
+        return 0.0
     z = scipy_stats.norm.ppf(1 - confidence)
-    return returns.mean() + z * returns.std()
+    return clean.mean() + z * clean.std()
 
 
 def _var_monte_carlo(
     returns: pd.Series, confidence: float = 0.95, n_sims: int = 10000
 ) -> float:
     """Monte Carlo VaR using bootstrapped returns."""
+    clean = returns.dropna()
+    if len(clean) == 0:
+        return 0.0
     np.random.seed(42)
-    simulated = np.random.choice(returns.dropna().values, size=n_sims, replace=True)
+    simulated = np.random.choice(clean.values, size=n_sims, replace=True)
     return np.percentile(simulated, (1 - confidence) * 100)
 
 
@@ -137,12 +158,25 @@ def _marginal_contribution_to_risk(
     MCTR_i = w_i * (Cov * w)_i / sigma_p
     """
     tickers = [t for t in weights if t in returns.columns]
+    if not tickers or len(returns[tickers].dropna(how="all")) < 2:
+        return pd.DataFrame(columns=[
+            "Ticker", "Weight", "MCTR", "Risk Contribution", "% of Portfolio Risk"
+        ])
+
     w = np.array([weights[t] for t in tickers])
     w = w / w.sum()
 
     cov_matrix = returns[tickers].cov().values * TRADING_DAYS_PER_YEAR
     port_var = w @ cov_matrix @ w
     port_vol = np.sqrt(port_var)
+
+    if port_vol == 0:
+        return pd.DataFrame({
+            "Ticker": tickers, "Weight": w,
+            "MCTR": np.zeros(len(w)),
+            "Risk Contribution": np.zeros(len(w)),
+            "% of Portfolio Risk": np.zeros(len(w)),
+        })
 
     # Marginal contribution
     mctr = (cov_matrix @ w) / port_vol  # risk contribution per unit weight
@@ -160,19 +194,30 @@ def _marginal_contribution_to_risk(
 
 def _return_distribution_stats(returns: pd.Series) -> Dict[str, float]:
     """Compute distribution statistics."""
-    skew = scipy_stats.skew(returns.dropna())
-    kurt = scipy_stats.kurtosis(returns.dropna())
-    jb_stat, jb_pval = scipy_stats.jarque_bera(returns.dropna())
+    clean = returns.dropna()
+    if len(clean) < 3:
+        return {
+            "skewness": 0.0, "kurtosis": 0.0,
+            "jarque_bera_stat": 0.0, "jarque_bera_pval": 1.0,
+            "is_normal": True,
+            "mean_daily": float(clean.mean()) if len(clean) else 0.0,
+            "std_daily": float(clean.std()) if len(clean) else 0.0,
+            "min_daily": float(clean.min()) if len(clean) else 0.0,
+            "max_daily": float(clean.max()) if len(clean) else 0.0,
+        }
+    skew = scipy_stats.skew(clean)
+    kurt = scipy_stats.kurtosis(clean)
+    jb_stat, jb_pval = scipy_stats.jarque_bera(clean)
     return {
         "skewness": float(skew),
         "kurtosis": float(kurt),
         "jarque_bera_stat": float(jb_stat),
         "jarque_bera_pval": float(jb_pval),
         "is_normal": jb_pval > 0.05,
-        "mean_daily": float(returns.mean()),
-        "std_daily": float(returns.std()),
-        "min_daily": float(returns.min()),
-        "max_daily": float(returns.max()),
+        "mean_daily": float(clean.mean()),
+        "std_daily": float(clean.std()),
+        "min_daily": float(clean.min()),
+        "max_daily": float(clean.max()),
     }
 
 
@@ -188,8 +233,22 @@ def compute_risk(state: PortfolioState) -> PortfolioState:
     if returns is None or weights is None:
         raise ValueError("Returns and weights must be populated before risk computation.")
 
+    if isinstance(returns, pd.DataFrame) and len(returns) == 0:
+        raise ValueError(
+            f"Returns DataFrame is empty (shape {returns.shape}). "
+            f"This usually means yfinance returned price data with NaN columns "
+            f"that caused all rows to be dropped during log-return computation. "
+            f"Check that all tickers have valid price history."
+        )
+
     # Portfolio-level return series
     port_returns = _portfolio_returns(returns, weights)
+
+    if len(port_returns.dropna()) == 0:
+        raise ValueError(
+            f"Portfolio return series is empty after weighting. "
+            f"Returns shape: {returns.shape}, weight tickers: {list(weights.keys())}"
+        )
 
     # Core risk metrics
     risk_metrics = {
