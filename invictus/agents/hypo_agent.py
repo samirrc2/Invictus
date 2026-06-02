@@ -13,11 +13,17 @@ from invictus.config import (
 
 
 def _annualized_vol(returns: pd.Series) -> float:
-    return returns.std() * np.sqrt(TRADING_DAYS_PER_YEAR)
+    clean = returns.dropna()
+    if len(clean) < 2:
+        return 0.0
+    return clean.std() * np.sqrt(TRADING_DAYS_PER_YEAR)
 
 
 def _annualized_return(returns: pd.Series) -> float:
-    return returns.mean() * TRADING_DAYS_PER_YEAR
+    clean = returns.dropna()
+    if len(clean) == 0:
+        return 0.0
+    return clean.mean() * TRADING_DAYS_PER_YEAR
 
 
 def _sharpe(returns: pd.Series) -> float:
@@ -28,14 +34,20 @@ def _sharpe(returns: pd.Series) -> float:
 
 
 def _max_drawdown(returns: pd.Series) -> float:
-    cumulative = (1 + returns).cumprod()
+    clean = returns.dropna()
+    if len(clean) == 0:
+        return 0.0
+    cumulative = (1 + clean).cumprod()
     running_max = cumulative.cummax()
     drawdown = (cumulative - running_max) / running_max
     return drawdown.min()
 
 
 def _var_historical(returns: pd.Series, confidence: float = 0.95) -> float:
-    return np.percentile(returns, (1 - confidence) * 100)
+    clean = returns.dropna()
+    if len(clean) == 0:
+        return 0.0
+    return np.percentile(clean, (1 - confidence) * 100)
 
 
 def _hhi(weights: Dict[str, float]) -> float:
@@ -101,7 +113,9 @@ def compute_before_after(
     new_weights = {t: v / new_total for t, v in existing_weights_dollar.items()}
 
     # Compute returns for hypothetical portfolio
-    returns = np.log(prices / prices.shift(1)).dropna()
+    # Use dropna(how='all') to preserve per-cell data; fillna(0) in
+    # _portfolio_returns handles the rest.
+    returns = np.log(prices / prices.shift(1)).dropna(how="all")
     available_tickers = [t for t in new_weights if t in returns.columns]
 
     if not available_tickers:
