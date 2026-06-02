@@ -66,31 +66,105 @@ def _arrow():
 # ══════════════════════════════════════════════════════════════════════
 
 def _render_hero():
+    # ── Title Block ──
     st.markdown(
-        f'<div style="text-align:center;padding:24px 0 8px 0;">'
-        # Title with gradient accent
+        f'<div style="text-align:center;padding:24px 0 0 0;">'
         f'<div style="font-size:36px;font-weight:900;color:{_S900};'
         f'letter-spacing:0.14em;margin-bottom:2px;">INVICTUS</div>'
         f'<div style="font-size:13px;font-weight:600;color:{_B};'
         f'letter-spacing:0.08em;text-transform:uppercase;'
         f'margin-bottom:10px;">Analytical Intelligence Platform for Equity Portfolios</div>'
-        # Gradient divider
         f'<div style="width:80px;height:3px;'
         f'background:linear-gradient(90deg,{_B},#60a5fa,{_B});'
-        f'margin:0 auto 16px auto;border-radius:2px;"></div>'
-        # Scenario hook — bold key phrases
-        f'<div style="font-size:13px;color:{_S500};max-width:640px;'
-        f'margin:0 auto;line-height:1.8;">'
-        f'<span style="font-weight:700;color:{_S900};">$5,000 to invest.</span> '
-        f'<span style="font-weight:700;color:{_S900};">Three stocks.</span> '
-        f'Which one actually fits your portfolio? '
-        f'Invictus runs a '
-        f'<span style="font-weight:700;color:{_B};">multi-stage analytical pipeline</span> '
-        f'across '
-        f'<span style="font-weight:700;color:{_B};">7 parallel stages</span> '
-        f'— combining quantitative risk models, institutional flow scoring, and LLM intelligence '
-        f'to give you a conviction signal, not a gut feeling.</div>'
+        f'margin:0 auto 14px auto;border-radius:2px;"></div>'
         f'</div>', unsafe_allow_html=True)
+
+    # ── Scenario Hook — gradient border card ──
+    st.markdown(
+        f'<div style="max-width:700px;margin:0 auto 20px auto;'
+        f'background:linear-gradient(135deg,{_BBG},#fff,{_BBG});'
+        f'border:1px solid {_BBR};border-radius:10px;'
+        f'padding:20px 28px;position:relative;overflow:hidden;">'
+        # Subtle accent bar on left
+        f'<div style="position:absolute;left:0;top:0;bottom:0;width:4px;'
+        f'background:linear-gradient(180deg,{_B},#60a5fa,{_G});border-radius:10px 0 0 10px;"></div>'
+        f'<div style="font-size:13px;color:{_S700};line-height:1.9;padding-left:8px;">'
+        f'You hold 5 stocks. One is quietly '
+        f'<span style="font-weight:700;color:#dc2626;">bleeding risk</span> '
+        f'into your portfolio. Another is about to break out — but '
+        f'<span style="font-weight:700;color:{_S900};">Wall Street hasn\'t noticed yet</span>. '
+        f'Invictus analyzes your portfolio the way a '
+        f'<span style="font-weight:700;color:{_B};">quant desk</span> would — '
+        f'and tells you where conviction is backed by evidence, not gut feeling.</div>'
+        f'</div>', unsafe_allow_html=True)
+
+    # ── Three Capability Cards ──
+    _cap_blue = "#1d4ed8"      # brand blue
+    _cap_emerald = "#059669"   # emerald
+    _cap_amber = "#d97706"     # amber
+
+    def _cap_card(color, light_bg, icon, title, tagline, details):
+        detail_html = "".join(
+            f'<div style="font-size:11px;color:{_S500};line-height:1.6;'
+            f'padding:3px 0 3px 14px;border-left:2px solid {color}18;">{d}</div>'
+            for d in details)
+        return (
+            f'<div style="flex:1;border:1px solid {color}30;border-radius:10px;'
+            f'background:{light_bg};padding:18px 16px;position:relative;overflow:hidden;'
+            f'min-width:0;">'
+            # Top accent line
+            f'<div style="position:absolute;top:0;left:16px;right:16px;height:3px;'
+            f'background:linear-gradient(90deg,{color},{color}60);border-radius:0 0 2px 2px;"></div>'
+            # Icon + Title
+            f'<div style="font-size:22px;margin-bottom:4px;">{icon}</div>'
+            f'<div style="font-size:13px;font-weight:800;color:{_S900};'
+            f'margin-bottom:2px;">{title}</div>'
+            f'<div style="font-size:11px;font-weight:600;color:{color};'
+            f'text-transform:uppercase;letter-spacing:0.04em;margin-bottom:10px;">{tagline}</div>'
+            # Details
+            f'{detail_html}'
+            f'</div>')
+
+    cards_html = (
+        f'<div style="display:flex;gap:12px;max-width:780px;margin:0 auto;">'
+        + _cap_card(
+            _cap_blue, f"{_cap_blue}06",
+            "⚠️",  # warning sign → risk
+            "Portfolio Risk X-Ray",
+            "What could go wrong?",
+            [
+                "Stress-tests your holdings against historical crashes (2008, COVID, rate shocks)",
+                "Computes VaR, max drawdown, volatility regime, and factor exposures",
+                "Identifies hidden correlations — are your \"diversified\" stocks actually the same bet?",
+            ],
+        )
+        + _cap_card(
+            _cap_emerald, f"{_cap_emerald}06",
+            "\U0001F50D",  # magnifying glass → intelligence
+            "Conviction Intelligence",
+            "What are the smart money signals?",
+            [
+                "Tracks institutional 13F filings — who is accumulating, who is exiting",
+                "Reads earnings transcripts with AI to score management credibility",
+                "Fuses 4 independent signals into a single outperformance probability",
+            ],
+        )
+        + _cap_card(
+            _cap_amber, f"{_cap_amber}06",
+            "\U0001F4CA",  # chart → allocation
+            "Allocation Simulator",
+            "Should you actually buy it?",
+            [
+                "Simulates adding a position and shows exactly how your risk profile changes",
+                "Before vs after on every metric — Sharpe, VaR, concentration, volatility",
+                "AI-generated verdict: FAVORABLE, UNFAVORABLE, or MIXED — with reasoning",
+            ],
+        )
+        + '</div>'
+    )
+    st.markdown(cards_html, unsafe_allow_html=True)
+
+    _sp(6)
 
 
 def _render_topology():
