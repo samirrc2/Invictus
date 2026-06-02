@@ -33,9 +33,13 @@ from invictus.config import (
 def _portfolio_returns(returns: pd.DataFrame, weights: Dict[str, float]) -> pd.Series:
     """Compute weighted portfolio return series."""
     tickers = [t for t in weights if t in returns.columns]
+    if not tickers:
+        return pd.Series(dtype=float)
     w = np.array([weights[t] for t in tickers])
     w = w / w.sum()  # normalize
-    return returns[tickers].dot(w)
+    # fillna(0): if a ticker has no return for a given day, treat as
+    # 0% return rather than propagating NaN to the entire portfolio.
+    return returns[tickers].fillna(0).dot(w)
 
 
 def _annualized_vol(returns: pd.Series) -> float:

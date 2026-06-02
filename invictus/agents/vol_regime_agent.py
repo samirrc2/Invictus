@@ -29,11 +29,12 @@ def detect_vol_regime(state: PortfolioState) -> PortfolioState:
     if returns is None or weights is None:
         raise ValueError("Returns and weights required for vol regime detection.")
 
-    # Compute portfolio returns
+    # Compute portfolio returns — fillna(0) so per-cell NaN doesn't
+    # propagate to the entire portfolio return for that row.
     tickers = [t for t in weights if t in returns.columns]
     w = np.array([weights[t] for t in tickers])
     w = w / w.sum()
-    port_returns = returns[tickers].dot(w)
+    port_returns = returns[tickers].fillna(0).dot(w)
 
     # Rolling volatility (annualized)
     rolling_vol = port_returns.rolling(window=ROLLING_VOL_WINDOW).std() * np.sqrt(TRADING_DAYS_PER_YEAR)

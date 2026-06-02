@@ -46,9 +46,11 @@ def _hhi(weights: Dict[str, float]) -> float:
 
 def _portfolio_returns(returns: pd.DataFrame, weights: Dict[str, float]) -> pd.Series:
     tickers = [t for t in weights if t in returns.columns]
+    if not tickers:
+        return pd.Series(dtype=float)
     w = np.array([weights[t] for t in tickers])
     w = w / w.sum()
-    return returns[tickers].dot(w)
+    return returns[tickers].fillna(0).dot(w)
 
 
 def compute_before_after(

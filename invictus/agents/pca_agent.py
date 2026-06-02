@@ -32,7 +32,9 @@ def run_pca(state: PortfolioState) -> PortfolioState:
         raise ValueError("Returns and weights must be populated before PCA.")
 
     tickers = [t for t in weights if t in returns.columns]
-    ret_matrix = returns[tickers].dropna()
+    # Drop only rows where ALL tickers are NaN; fill remaining per-cell
+    # NaN with 0 so partial missing data doesn't eliminate entire rows.
+    ret_matrix = returns[tickers].dropna(how="all").fillna(0)
 
     if len(ret_matrix) < 30:
         raise ValueError(f"Not enough data for PCA: {len(ret_matrix)} days (need 30+)")
