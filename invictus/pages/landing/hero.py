@@ -126,16 +126,16 @@ def _render_hero():
             f'</div>')
 
     cards_html = (
-        f'<div style="display:flex;gap:12px;max-width:780px;margin:0 auto;">'
+        f'<div style="display:flex;gap:12px;width:100%;">'
         + _cap_card(
             _cap_blue, f"{_cap_blue}06",
             "\U0001F6E1️",
             "Portfolio Risk Analytics",
             "Structural risk decomposition",
             [
-                "Historical stress tests across 6 crisis scenarios with per-position impact attribution",
-                "Full risk suite: VaR, CVaR, drawdown, Sharpe, Sortino, factor loadings via PCA",
-                "HMM-based volatility regime detection with rolling correlation monitoring",
+                "Stress tests across 6 historical crisis scenarios with per-position impact",
+                "VaR, CVaR, drawdown, Sharpe, Sortino, and PCA factor decomposition",
+                "HMM volatility regime detection with correlation monitoring",
             ],
         )
         + _cap_card(
@@ -145,8 +145,8 @@ def _render_hero():
             "Evidence-based signal synthesis",
             [
                 "Institutional 13F flow analysis with materiality weighting and time decay",
-                "AI-scored management outlook across 6 qualitative dimensions with credibility gating",
-                "Bayesian signal fusion: 4 independent sources into a calibrated outperformance probability",
+                "AI-scored management outlook across 6 dimensions with credibility gating",
+                "Bayesian fusion of 4 sources into a calibrated outperformance probability",
             ],
         )
         + _cap_card(
@@ -155,9 +155,9 @@ def _render_hero():
             "Allocation Simulation",
             "Hypothetical portfolio construction",
             [
-                "Before-vs-after risk comparison across Sharpe, VaR, volatility, and concentration",
-                "Conviction-informed candidate screening with per-stock signal transparency",
-                "AI-generated verdict with metric-level reasoning: favorable, unfavorable, or mixed",
+                "Before-vs-after comparison: Sharpe, VaR, volatility, concentration",
+                "Conviction-informed candidate screening with signal transparency",
+                "AI verdict with metric-level reasoning: favorable, unfavorable, or mixed",
             ],
         )
         + '</div>'
