@@ -131,33 +131,30 @@ def _render_hero():
             _cap_blue, f"{_cap_blue}06",
             "\U0001F6E1️",
             "Portfolio Risk Analytics",
-            "Structural risk decomposition",
+            "Decompose structural risk",
             [
-                "Stress tests across 6 historical crisis scenarios with per-position impact",
-                "VaR, CVaR, drawdown, Sharpe, Sortino, and PCA factor decomposition",
-                "HMM volatility regime detection with correlation monitoring",
+                "Stress tests across 6 historical crises with per-position impact attribution",
+                "Full risk suite: VaR, CVaR, Sharpe, Sortino, PCA factor loadings",
             ],
         )
         + _cap_card(
             _cap_emerald, f"{_cap_emerald}06",
             "\U0001F4C8",
             "Conviction Intelligence",
-            "Evidence-based signal synthesis",
+            "Synthesize evidence-based signals",
             [
-                "Institutional 13F flow analysis with materiality weighting and time decay",
-                "AI-scored management outlook across 6 dimensions with credibility gating",
-                "Bayesian fusion of 4 sources into a calibrated outperformance probability",
+                "13F institutional flows, AI-scored earnings, and management credibility gating",
+                "Bayesian fusion of 4 independent sources into a calibrated probability",
             ],
         )
         + _cap_card(
             _cap_amber, f"{_cap_amber}06",
             "⚖️",
             "Allocation Simulation",
-            "Hypothetical portfolio construction",
+            "Simulate before you allocate",
             [
-                "Before-vs-after comparison: Sharpe, VaR, volatility, concentration",
-                "Conviction-informed candidate screening with signal transparency",
-                "AI verdict with metric-level reasoning: favorable, unfavorable, or mixed",
+                "Before-vs-after risk comparison: Sharpe, VaR, volatility, concentration",
+                "AI-generated verdict with metric-level reasoning for every proposed position",
             ],
         )
         + '</div>'
@@ -168,6 +165,13 @@ def _render_hero():
 
 
 def _render_topology():
+    # Bridge from user-facing hero to engineering detail
+    st.markdown(
+        f'<div style="text-align:center;padding:8px 0 4px 0;">'
+        f'<div style="font-size:12px;font-weight:600;color:{_S400};'
+        f'letter-spacing:0.06em;text-transform:uppercase;">Under the Hood</div>'
+        f'</div>', unsafe_allow_html=True)
+
     render_section_header("Orchestrator Topology — 7 Stages")
     st.markdown(f'<div style="font-size:{_FS};color:{_S500};margin:-6px 0 8px 12px;">'
                 f'End-to-end LangGraph pipeline from portfolio load to evaluated AI commentary.</div>',
