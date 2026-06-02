@@ -89,13 +89,13 @@ def _render_hero():
         f'<div style="position:absolute;left:0;top:0;bottom:0;width:4px;'
         f'background:linear-gradient(180deg,{_B},#60a5fa,{_G});border-radius:10px 0 0 10px;"></div>'
         f'<div style="font-size:13px;color:{_S700};line-height:1.9;padding-left:8px;">'
-        f'You hold 5 stocks. One is quietly '
-        f'<span style="font-weight:700;color:#dc2626;">bleeding risk</span> '
-        f'into your portfolio. Another is about to break out — but '
-        f'<span style="font-weight:700;color:{_S900};">Wall Street hasn\'t noticed yet</span>. '
-        f'Invictus analyzes your portfolio the way a '
-        f'<span style="font-weight:700;color:{_B};">quant desk</span> would — '
-        f'and tells you where conviction is backed by evidence, not gut feeling.</div>'
+        f'Most portfolio tools tell you what already happened. '
+        f'<span style="font-weight:700;color:{_S900};">Invictus tells you what to watch for next.</span> '
+        f'It runs a full analytical pipeline across your holdings — '
+        f'<span style="font-weight:700;color:{_B};">decomposing risk exposures</span>, '
+        f'<span style="font-weight:700;color:{_B};">scoring institutional conviction</span>, and '
+        f'<span style="font-weight:700;color:{_B};">stress-testing allocation decisions</span> '
+        f'— to surface the signals that matter, backed by evidence you can audit.</div>'
         f'</div>', unsafe_allow_html=True)
 
     # ── Three Capability Cards ──
@@ -129,35 +129,35 @@ def _render_hero():
         f'<div style="display:flex;gap:12px;max-width:780px;margin:0 auto;">'
         + _cap_card(
             _cap_blue, f"{_cap_blue}06",
-            "⚠️",  # warning sign → risk
-            "Portfolio Risk X-Ray",
-            "What could go wrong?",
+            "\U0001F6E1️",
+            "Portfolio Risk Analytics",
+            "Structural risk decomposition",
             [
-                "Stress-tests your holdings against historical crashes (2008, COVID, rate shocks)",
-                "Computes VaR, max drawdown, volatility regime, and factor exposures",
-                "Identifies hidden correlations — are your \"diversified\" stocks actually the same bet?",
+                "Historical stress tests across 6 crisis scenarios with per-position impact attribution",
+                "Full risk suite: VaR, CVaR, drawdown, Sharpe, Sortino, factor loadings via PCA",
+                "HMM-based volatility regime detection with rolling correlation monitoring",
             ],
         )
         + _cap_card(
             _cap_emerald, f"{_cap_emerald}06",
-            "\U0001F50D",  # magnifying glass → intelligence
+            "\U0001F4C8",
             "Conviction Intelligence",
-            "What are the smart money signals?",
+            "Evidence-based signal synthesis",
             [
-                "Tracks institutional 13F filings — who is accumulating, who is exiting",
-                "Reads earnings transcripts with AI to score management credibility",
-                "Fuses 4 independent signals into a single outperformance probability",
+                "Institutional 13F flow analysis with materiality weighting and time decay",
+                "AI-scored management outlook across 6 qualitative dimensions with credibility gating",
+                "Bayesian signal fusion: 4 independent sources into a calibrated outperformance probability",
             ],
         )
         + _cap_card(
             _cap_amber, f"{_cap_amber}06",
-            "\U0001F4CA",  # chart → allocation
-            "Allocation Simulator",
-            "Should you actually buy it?",
+            "⚖️",
+            "Allocation Simulation",
+            "Hypothetical portfolio construction",
             [
-                "Simulates adding a position and shows exactly how your risk profile changes",
-                "Before vs after on every metric — Sharpe, VaR, concentration, volatility",
-                "AI-generated verdict: FAVORABLE, UNFAVORABLE, or MIXED — with reasoning",
+                "Before-vs-after risk comparison across Sharpe, VaR, volatility, and concentration",
+                "Conviction-informed candidate screening with per-stock signal transparency",
+                "AI-generated verdict with metric-level reasoning: favorable, unfavorable, or mixed",
             ],
         )
         + '</div>'
