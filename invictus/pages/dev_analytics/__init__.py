@@ -23,8 +23,8 @@ def render(sub: str):
 
     # Gate tabs that need data
     _needs_data = sub not in (
-        "Error Log", "Cost Analytics", "Eval Metrics", "Backtest",
-        "Architecture", "Conviction Intelligence",
+        "Error Log", "Visitor Log", "Cost Analytics", "Eval Metrics",
+        "Backtest", "Architecture", "Conviction Intelligence",
     )
     if total_records == 0 and _needs_data:
         st.info("No observability data yet. Run the pipeline to start collecting.")
@@ -36,6 +36,10 @@ def render(sub: str):
     if sub == "Error Log":
         from invictus.pages.dev_analytics.error_log import render_error_log
         render_error_log()
+
+    elif sub == "Visitor Log":
+        from invictus.pages.dev_analytics.visitor_log import render_visitor_log
+        render_visitor_log()
 
     elif sub == "Architecture":
         from invictus.pages.dev_analytics.architecture import render_architecture

@@ -120,6 +120,29 @@ TABLES = {
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """,
+
+    "visitor_log": """
+        CREATE TABLE IF NOT EXISTS visitor_log (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            session_id TEXT NOT NULL,
+            ip_address TEXT,
+            city TEXT,
+            region TEXT,
+            country TEXT,
+            lat REAL,
+            lon REAL,
+            isp TEXT,
+            user_agent TEXT,
+            referrer TEXT,
+            page TEXT,
+            tickers_loaded TEXT,
+            pipeline_runs INTEGER DEFAULT 0,
+            is_demo INTEGER DEFAULT 0,
+            session_start TIMESTAMP,
+            last_active TIMESTAMP,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """,
 }
 
 INDEXES = [
@@ -133,4 +156,7 @@ INDEXES = [
     "CREATE INDEX IF NOT EXISTS idx_data_health_source ON data_health(source)",
     "CREATE INDEX IF NOT EXISTS idx_eval_results_type ON eval_results(eval_type)",
     "CREATE INDEX IF NOT EXISTS idx_eval_results_ts ON eval_results(created_at)",
+    "CREATE INDEX IF NOT EXISTS idx_visitor_ip ON visitor_log(ip_address)",
+    "CREATE INDEX IF NOT EXISTS idx_visitor_session ON visitor_log(session_id)",
+    "CREATE INDEX IF NOT EXISTS idx_visitor_ts ON visitor_log(created_at)",
 ]

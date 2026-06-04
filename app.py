@@ -24,6 +24,9 @@ from invictus.design import (
 from invictus.analytics.tracker import (
     create_session as _analytics_create_session,
 )
+from invictus.observability.collectors.visitor_collector import (
+    track_visit, track_pipeline_run,
+)
 
 # ── Page Modules ──────────────────────────────────────────────────────
 from invictus.pages import portfolio as portfolio_analytics, hypo_simulator, dev_analytics
@@ -69,6 +72,12 @@ for key, default in {
 if st.session_state._analytics_sid is None:
     st.session_state._analytics_sid = _analytics_create_session()
 
+# ── Visitor Tracking (IP, geolocation, session) ──────────────────────
+try:
+    track_visit(page=st.session_state.get("nav_primary", "landing"))
+except Exception:
+    pass  # visitor tracking should never crash the app
+
 # ── Agent Display Mapping ─────────────────────────────────────────────
 _AGENT_DISPLAY = {
     "load_portfolio": "Load Portfolio",
@@ -104,7 +113,7 @@ _ROUTES = {
 }
 if st.query_params.get("dev") == "invictus":
     _ROUTES = {"Dev Analytics": [
-        "Error Log", "Architecture", "Agent Performance", "LLM Quality",
+        "Error Log", "Visitor Log", "Architecture", "Agent Performance", "LLM Quality",
         "ML Monitoring", "Conviction Analytics", "Conviction Intelligence",
         "Session Analytics", "Data Health", "Cost Analytics", "Eval Metrics",
         "Backtest",
@@ -546,6 +555,14 @@ if load_btn:
             session_id=st.session_state.get("_analytics_sid"),
             duration_ms=_pipeline_duration, mode=_mode,
         )
+        # Track visitor pipeline activity
+        try:
+            track_pipeline_run(
+                is_demo=(_mode == "demo"),
+                tickers=_tickers if "_tickers" in dir() else [],
+            )
+        except Exception:
+            pass
 
         _progress_bar.progress(1.0, text="Pipeline complete — all agents finished")
         st.session_state.show_landing = False
