@@ -161,6 +161,8 @@ app.py                   # Streamlit entry point — thin routing shell
 
 ## Running Locally
 
+Requires **Python 3.10+**.
+
 ```bash
 git clone https://github.com/samirrc2/Invictus.git
 cd Invictus

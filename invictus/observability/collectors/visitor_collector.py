@@ -25,22 +25,56 @@ def _get_session_id() -> str:
     return st.session_state.visitor_session_id
 
 
+def _is_private_ip(ip: str) -> bool:
+    """Check if an IP is private/internal (not a real visitor)."""
+    return (
+        ip.startswith("192.168.")
+        or ip.startswith("10.")
+        or ip.startswith("172.16.") or ip.startswith("172.17.")
+        or ip.startswith("172.18.") or ip.startswith("172.19.")
+        or ip.startswith("172.2") or ip.startswith("172.30.") or ip.startswith("172.31.")
+        or ip.startswith("127.")
+        or ip == "::1"
+        or ip == "unknown"
+    )
+
+
 def _get_client_ip() -> str:
-    """Extract client IP from Streamlit request headers."""
+    """Extract the real public client IP from Streamlit request headers.
+
+    X-Forwarded-For can contain a chain: 'client, proxy1, proxy2'.
+    On Streamlit Cloud the last entries are internal IPs — we want
+    the first public IP in the chain.
+    """
     try:
         headers = st.context.headers
-        # Streamlit Cloud uses X-Forwarded-For
+        # X-Forwarded-For: may have multiple IPs — find first public one
         forwarded = headers.get("X-Forwarded-For", "")
         if forwarded:
+            for ip_candidate in forwarded.split(","):
+                ip_candidate = ip_candidate.strip()
+                if ip_candidate and not _is_private_ip(ip_candidate):
+                    return ip_candidate
+            # If all are private, return the first one anyway
             return forwarded.split(",")[0].strip()
-        # Fallback headers
-        for h in ("X-Real-Ip", "Cf-Connecting-Ip", "Remote-Addr"):
+
+        # Fallback headers (Cloudflare, nginx, etc.)
+        for h in ("X-Real-Ip", "Cf-Connecting-Ip", "True-Client-Ip", "Remote-Addr"):
             val = headers.get(h, "")
-            if val:
+            if val and not _is_private_ip(val.strip()):
                 return val.strip()
     except Exception:
         pass
     return "unknown"
+
+
+def _is_health_check(ua: str) -> bool:
+    """Detect automated health checks / bots — don't log these."""
+    ua_lower = ua.lower()
+    return any(bot in ua_lower for bot in (
+        "headlesschrome", "bot", "crawler", "spider",
+        "health", "monitor", "uptimerobot", "pingdom",
+    ))
 
 
 def _get_user_agent() -> str:
@@ -101,11 +135,17 @@ def _geolocate_ip(ip: str) -> dict:
 def track_visit(page: str = "landing"):
     """
     Record a visitor session. Call once on app load.
+    Skips health-check bots and internal probes.
     Subsequent calls for the same session update last_active instead
     of creating duplicate rows.
     """
     session_id = _get_session_id()
     now = datetime.now(timezone.utc).isoformat()
+
+    # Skip health-check bots (HeadlessChrome, crawlers, etc.)
+    ua = _get_user_agent()
+    if _is_health_check(ua):
+        return
 
     # Check if session already logged
     existing = query_one(
@@ -130,7 +170,6 @@ def track_visit(page: str = "landing"):
     # First visit for this session — collect everything
     ip = _get_client_ip()
     geo = _geolocate_ip(ip)
-    ua = _get_user_agent()
     ref = _get_referrer()
 
     insert("visitor_log", {

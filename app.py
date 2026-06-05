@@ -38,7 +38,7 @@ pio.templates.default = "plotly"
 # ── Page Config ───────────────────────────────────────────────────────
 st.set_page_config(
     page_title="Invictus Portfolio Intelligence",
-    page_icon="https://raw.githubusercontent.com/favicon.ico",
+    page_icon="📊",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -559,7 +559,7 @@ if load_btn:
         try:
             track_pipeline_run(
                 is_demo=(_mode == "demo"),
-                tickers=_tickers if "_tickers" in dir() else [],
+                tickers=holdings["Ticker"].tolist() if "holdings" in dir() else [],
             )
         except Exception:
             pass

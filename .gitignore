@@ -18,18 +18,29 @@ env/
 invictus/rag/sec_vault/
 invictus/rag/transcripts/
 sec-edgar-filings/
+
+# Database files
 analytics.db
 *.sqlite
+*.db
+
+# Data files (keep demo data)
 *.csv
 *.parquet
 *.json
-
-# BUT keep demo data (cached fallback for Streamlit Cloud)
 !invictus/data/demo/**/*.json
+
+# FUSE / OS temp files
+.fuse_hidden*
+*/.fuse_hidden*
 
 # OS & IDE
 .DS_Store
+**/.DS_Store
 .vscode/
 .idea/
 *.swp
 *.bak
+
+# Claude Cowork
+AGENTS.md
