@@ -89,7 +89,7 @@ def _render_hero():
         f'<div style="position:absolute;left:0;top:0;bottom:0;width:4px;'
         f'background:linear-gradient(180deg,{_B},#60a5fa,{_G});border-radius:10px 0 0 10px;"></div>'
         f'<div style="font-size:13px;color:{_S700};line-height:1.9;padding-left:8px;">'
-        f'Most portfolio tools tell you what already happened. '
+        f'Most portfolio platforms tell you what already happened. '
         f'<span style="font-weight:700;color:{_S900};">Invictus tells you what to watch for next.</span> '
         f'It runs a full analytical pipeline across your holdings — '
         f'<span style="font-weight:700;color:{_B};">decomposing risk exposures</span>, '
