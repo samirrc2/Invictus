@@ -111,7 +111,8 @@ _ROUTES = {
         "Run Allocation Simulation",
     ],
 }
-if st.query_params.get("dev") == "invictus":
+_dev_requested = st.query_params.get("dev") == "invictus"
+if _dev_requested and st.session_state.dev_authenticated:
     _ROUTES = {"Dev Analytics": [
         "Error Log", "Visitor Log", "Architecture", "Agent Performance", "LLM Quality",
         "ML Monitoring", "Conviction Analytics", "Conviction Intelligence",
@@ -586,6 +587,31 @@ if load_btn:
         }]
         _progress_bar.progress(1.0, text=f"Pipeline error: {e}")
         st.error(f"Execution Error: {e}")
+
+# ══════════════════════════════════════════════════════════════════════
+# DEV CONSOLE AUTH GATE
+# ══════════════════════════════════════════════════════════════════════
+if _dev_requested and not st.session_state.dev_authenticated:
+    import os as _os
+    _dev_pw = _os.environ.get("DEV_PASSWORD", "invictus2026")
+    st.markdown(
+        '<div style="max-width:400px;margin:80px auto;text-align:center;">'
+        '<div style="font-size:24px;font-weight:800;color:#0f172a;margin-bottom:8px;">Developer Console</div>'
+        '<div style="font-size:13px;color:#64748b;margin-bottom:24px;">Enter the access code to continue.</div>'
+        '</div>',
+        unsafe_allow_html=True,
+    )
+    _pw_col = st.columns([1, 1, 1])[1]
+    with _pw_col:
+        _pw_input = st.text_input("Access code", type="password", key="_dev_pw_input",
+                                  label_visibility="collapsed", placeholder="Access code")
+        if st.button("Unlock", key="_dev_unlock_btn", use_container_width=True, type="primary"):
+            if _pw_input == _dev_pw:
+                st.session_state.dev_authenticated = True
+                st.rerun()
+            else:
+                st.error("Incorrect access code.")
+    st.stop()
 
 # ══════════════════════════════════════════════════════════════════════
 # LANDING PAGE — shows when show_landing is active
