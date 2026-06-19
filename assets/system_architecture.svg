@@ -1,0 +1,123 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2260 860" font-family="-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif">
+<defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#9aa0a6"/></marker><marker id="arx" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#bdc1c6"/></marker></defs>
+<rect width="2260" height="860" fill="#ffffff"/>
+<text x="36" y="30" fill="#5f6368" font-size="15">Invictus — System Architecture</text>
+<path d="M196,470 H250" stroke="#9aa0a6" stroke-width="1.8" fill="none" marker-end="url(#ar)"/>
+<path d="M520,470 H560" stroke="#9aa0a6" stroke-width="1.8" fill="none" marker-end="url(#ar)"/>
+<path d="M830,470 H880" stroke="#9aa0a6" stroke-width="1.8" fill="none" marker-end="url(#ar)"/>
+<path d="M1560,470 H1600" stroke="#9aa0a6" stroke-width="1.8" fill="none" marker-end="url(#ar)"/>
+<path d="M1880,300 H1930" stroke="#9aa0a6" stroke-width="1.8" fill="none" stroke-dasharray="6 5" marker-end="url(#arx)"/>
+<path d="M1880,620 H1930" stroke="#9aa0a6" stroke-width="1.8" fill="none" stroke-dasharray="6 5" marker-end="url(#arx)"/>
+<text x="118" y="70" fill="#5f6368" font-size="15" font-weight="700" text-anchor="middle" letter-spacing=".4">USER</text>
+<rect x="40" y="440" width="156" height="60" rx="8" fill="#e8f0fe" stroke="#4285f4" stroke-width="2"/>
+<text x="118.0" y="461.0" fill="#202124" font-size="15" font-weight="600" text-anchor="middle" dominant-baseline="middle">Analyst</text>
+<text x="118.0" y="481.0" fill="#5f6368" font-size="11.5" text-anchor="middle" dominant-baseline="middle">Web Browser</text>
+<text x="385" y="70" fill="#5f6368" font-size="15" font-weight="700" text-anchor="middle" letter-spacing=".4">PRESENTATION · Streamlit</text>
+<rect x="250" y="95" width="270" height="720" rx="12" fill="none" stroke="#dadce0" stroke-width="1.4"/>
+<rect x="268" y="150" width="234" height="120" rx="8" fill="#e8f0fe" stroke="#4285f4" stroke-width="2"/>
+<text x="385.0" y="201.0" fill="#202124" font-size="15" font-weight="600" text-anchor="middle" dominant-baseline="middle">Landing</text>
+<text x="385.0" y="221.0" fill="#5f6368" font-size="11.5" text-anchor="middle" dominant-baseline="middle">how-it-works</text>
+<rect x="268" y="315" width="234" height="120" rx="8" fill="#e8f0fe" stroke="#4285f4" stroke-width="2"/>
+<text x="385.0" y="366.0" fill="#202124" font-size="15" font-weight="600" text-anchor="middle" dominant-baseline="middle">Portfolio Dashboard</text>
+<text x="385.0" y="386.0" fill="#5f6368" font-size="11.5" text-anchor="middle" dominant-baseline="middle">risk · PCA · stress</text>
+<rect x="268" y="480" width="234" height="120" rx="8" fill="#e8f0fe" stroke="#4285f4" stroke-width="2"/>
+<text x="385.0" y="531.0" fill="#202124" font-size="15" font-weight="600" text-anchor="middle" dominant-baseline="middle">Conviction Engine</text>
+<text x="385.0" y="551.0" fill="#5f6368" font-size="11.5" text-anchor="middle" dominant-baseline="middle">signals · flows</text>
+<rect x="268" y="645" width="234" height="120" rx="8" fill="#e8f0fe" stroke="#4285f4" stroke-width="2"/>
+<text x="385.0" y="696.0" fill="#202124" font-size="15" font-weight="600" text-anchor="middle" dominant-baseline="middle">Dev Console</text>
+<text x="385.0" y="716.0" fill="#5f6368" font-size="11.5" text-anchor="middle" dominant-baseline="middle">11 obs. tabs</text>
+<text x="700" y="70" fill="#5f6368" font-size="15" font-weight="700" text-anchor="middle" letter-spacing=".4">ORCHESTRATION · LangGraph</text>
+<rect x="560" y="95" width="270" height="720" rx="12" fill="none" stroke="#dadce0" stroke-width="1.4"/>
+<rect x="578" y="210" width="234" height="110" rx="8" fill="#e8f0fe" stroke="#4285f4" stroke-width="2"/>
+<text x="695.0" y="256.0" fill="#202124" font-size="15" font-weight="600" text-anchor="middle" dominant-baseline="middle">PortfolioState</text>
+<text x="695.0" y="276.0" fill="#5f6368" font-size="11.5" text-anchor="middle" dominant-baseline="middle">Pydantic v2</text>
+<rect x="578" y="360" width="234" height="110" rx="8" fill="#e8f0fe" stroke="#4285f4" stroke-width="2"/>
+<text x="695.0" y="406.0" fill="#202124" font-size="15" font-weight="600" text-anchor="middle" dominant-baseline="middle">Node registry</text>
+<text x="695.0" y="426.0" fill="#5f6368" font-size="11.5" text-anchor="middle" dominant-baseline="middle">15 nodes</text>
+<rect x="578" y="510" width="234" height="110" rx="8" fill="#e8f0fe" stroke="#4285f4" stroke-width="2"/>
+<text x="695.0" y="556.0" fill="#202124" font-size="15" font-weight="600" text-anchor="middle" dominant-baseline="middle">Fan-out / fan-in</text>
+<text x="695.0" y="576.0" fill="#5f6368" font-size="11.5" text-anchor="middle" dominant-baseline="middle">barriers</text>
+<text x="1215" y="70" fill="#5f6368" font-size="15" font-weight="700" text-anchor="middle" letter-spacing=".4">ANALYTICS LAYER · 15 compute nodes</text>
+<rect x="880" y="95" width="680" height="720" rx="12" fill="none" stroke="#dadce0" stroke-width="1.4"/>
+<rect x="905" y="150" width="290" height="300" rx="9" fill="none" stroke="#dadce0" stroke-width="1.2"/>
+<text x="1050" y="174" fill="#5f6368" font-size="12.5" font-weight="700" text-anchor="middle">Portfolio Intelligence · Stage 1</text>
+<rect x="925" y="190" width="128" height="46" rx="6" fill="#e8f0fe" stroke="#4285f4" stroke-width="1.6"/>
+<text x="989.0" y="213.0" fill="#202124" font-size="12.5" text-anchor="middle" dominant-baseline="middle">risk</text>
+<rect x="1062" y="190" width="128" height="46" rx="6" fill="#e8f0fe" stroke="#4285f4" stroke-width="1.6"/>
+<text x="1126.0" y="213.0" fill="#202124" font-size="12.5" text-anchor="middle" dominant-baseline="middle">pca</text>
+<rect x="925" y="248" width="128" height="46" rx="6" fill="#e8f0fe" stroke="#4285f4" stroke-width="1.6"/>
+<text x="989.0" y="271.0" fill="#202124" font-size="12.5" text-anchor="middle" dominant-baseline="middle">vol_regime</text>
+<rect x="1062" y="248" width="128" height="46" rx="6" fill="#e8f0fe" stroke="#4285f4" stroke-width="1.6"/>
+<text x="1126.0" y="271.0" fill="#202124" font-size="12.5" text-anchor="middle" dominant-baseline="middle">stress</text>
+<rect x="925" y="306" width="128" height="46" rx="6" fill="#e8f0fe" stroke="#4285f4" stroke-width="1.6"/>
+<text x="989.0" y="329.0" fill="#202124" font-size="12.5" text-anchor="middle" dominant-baseline="middle">greeks</text>
+<rect x="1062" y="306" width="128" height="46" rx="6" fill="#e8f0fe" stroke="#4285f4" stroke-width="1.6"/>
+<text x="1126.0" y="329.0" fill="#202124" font-size="12.5" text-anchor="middle" dominant-baseline="middle">pnl</text>
+<text x="1050" y="392" fill="#80868b" font-size="11" text-anchor="middle">6 nodes · parallel</text>
+<rect x="905" y="470" width="290" height="320" rx="9" fill="none" stroke="#dadce0" stroke-width="1.2"/>
+<text x="1050" y="494" fill="#5f6368" font-size="12.5" font-weight="700" text-anchor="middle">Conviction Intelligence · Stage 2</text>
+<rect x="925" y="510" width="128" height="46" rx="6" fill="#e8f0fe" stroke="#4285f4" stroke-width="1.6"/>
+<text x="989.0" y="533.0" fill="#202124" font-size="12.5" text-anchor="middle" dominant-baseline="middle">flows</text>
+<rect x="1062" y="510" width="128" height="46" rx="6" fill="#e8f0fe" stroke="#4285f4" stroke-width="1.6"/>
+<text x="1126.0" y="533.0" fill="#202124" font-size="12.5" text-anchor="middle" dominant-baseline="middle">filing_intel</text>
+<rect x="925" y="568" width="128" height="46" rx="6" fill="#e8f0fe" stroke="#4285f4" stroke-width="1.6"/>
+<text x="989.0" y="591.0" fill="#202124" font-size="12.5" text-anchor="middle" dominant-baseline="middle">earnings_intel</text>
+<rect x="1062" y="568" width="128" height="46" rx="6" fill="#e8f0fe" stroke="#4285f4" stroke-width="1.6"/>
+<text x="1126.0" y="591.0" fill="#202124" font-size="12.5" text-anchor="middle" dominant-baseline="middle">10k_rag</text>
+<rect x="925" y="626" width="265" height="46" rx="6" fill="#e8f0fe" stroke="#4285f4" stroke-width="1.6"/>
+<text x="1057.5" y="649.0" fill="#202124" font-size="12.5" text-anchor="middle" dominant-baseline="middle">outlook</text>
+<text x="1050" y="708" fill="#80868b" font-size="11" text-anchor="middle">4 nodes · parallel + outlook</text>
+<rect x="1235" y="300" width="300" height="320" rx="9" fill="none" stroke="#dadce0" stroke-width="1.2"/>
+<text x="1385" y="324" fill="#5f6368" font-size="12.5" font-weight="700" text-anchor="middle">Sequential synthesis</text>
+<rect x="1255" y="340" width="260" height="56" rx="8" fill="#d2e3fc" stroke="#4285f4" stroke-width="2"/>
+<text x="1385.0" y="359.0" fill="#202124" font-size="14" font-weight="600" text-anchor="middle" dominant-baseline="middle">accumulation_model</text>
+<text x="1385.0" y="379.0" fill="#5f6368" font-size="11.5" text-anchor="middle" dominant-baseline="middle">Bayesian ML</text>
+<rect x="1255" y="406" width="260" height="56" rx="8" fill="#d2e3fc" stroke="#4285f4" stroke-width="2"/>
+<text x="1385.0" y="425.0" fill="#202124" font-size="14" font-weight="600" text-anchor="middle" dominant-baseline="middle">conviction_synthesis</text>
+<text x="1385.0" y="445.0" fill="#5f6368" font-size="11.5" text-anchor="middle" dominant-baseline="middle">Monte-Carlo CI</text>
+<rect x="1255" y="472" width="260" height="52" rx="8" fill="#d2e3fc" stroke="#4285f4" stroke-width="2"/>
+<text x="1385.0" y="498.0" fill="#202124" font-size="14" font-weight="600" text-anchor="middle" dominant-baseline="middle">generate_commentary</text>
+<rect x="1255" y="536" width="260" height="52" rx="8" fill="#d2e3fc" stroke="#4285f4" stroke-width="2"/>
+<text x="1385.0" y="562.0" fill="#202124" font-size="14" font-weight="600" text-anchor="middle" dominant-baseline="middle">evaluate_commentary</text>
+<path d="M1195,300 H1215 V430 H1235" stroke="#9aa0a6" stroke-width="1.8" fill="none" marker-end="url(#ar)"/>
+<path d="M1195,630 H1215 V490 H1235" stroke="#9aa0a6" stroke-width="1.8" fill="none" marker-end="url(#ar)"/>
+<text x="1740" y="70" fill="#5f6368" font-size="15" font-weight="700" text-anchor="middle" letter-spacing=".4">PLATFORM SERVICES</text>
+<rect x="1600" y="120" width="280" height="300" rx="9" fill="none" stroke="#dadce0" stroke-width="1.2"/>
+<text x="1740" y="144" fill="#5f6368" font-size="12.5" font-weight="700" text-anchor="middle">LLM Layer</text>
+<rect x="1618" y="158" width="244" height="66" rx="8" fill="#e8f0fe" stroke="#4285f4" stroke-width="2"/>
+<text x="1740.0" y="182.0" fill="#202124" font-size="14" font-weight="600" text-anchor="middle" dominant-baseline="middle">llm gateway</text>
+<text x="1740.0" y="202.0" fill="#5f6368" font-size="11.5" text-anchor="middle" dominant-baseline="middle">Gemini → OpenAI</text>
+<rect x="1618" y="236" width="244" height="58" rx="8" fill="#e8f0fe" stroke="#4285f4" stroke-width="2"/>
+<text x="1740.0" y="265.0" fill="#202124" font-size="14" font-weight="600" text-anchor="middle" dominant-baseline="middle">Tone analysis</text>
+<rect x="1618" y="304" width="244" height="58" rx="8" fill="#e8f0fe" stroke="#4285f4" stroke-width="2"/>
+<text x="1740.0" y="333.0" fill="#202124" font-size="14" font-weight="600" text-anchor="middle" dominant-baseline="middle">Eval / grounding</text>
+<text x="1740" y="392" fill="#80868b" font-size="11" text-anchor="middle">JSON mode · dict fallback</text>
+<rect x="1600" y="450" width="280" height="340" rx="9" fill="none" stroke="#dadce0" stroke-width="1.2"/>
+<text x="1740" y="474" fill="#5f6368" font-size="12.5" font-weight="700" text-anchor="middle">Data Layer</text>
+<rect x="1618" y="488" width="244" height="62" rx="8" fill="#e8f0fe" stroke="#4285f4" stroke-width="2"/>
+<text x="1740.0" y="510.0" fill="#202124" font-size="14" font-weight="600" text-anchor="middle" dominant-baseline="middle">FMP client</text>
+<text x="1740.0" y="530.0" fill="#5f6368" font-size="11.5" text-anchor="middle" dominant-baseline="middle">statements · grades · cache</text>
+<rect x="1618" y="560" width="244" height="56" rx="8" fill="#e8f0fe" stroke="#4285f4" stroke-width="2"/>
+<text x="1740.0" y="579.0" fill="#202124" font-size="14" font-weight="600" text-anchor="middle" dominant-baseline="middle">yfinance</text>
+<text x="1740.0" y="599.0" fill="#5f6368" font-size="11.5" text-anchor="middle" dominant-baseline="middle">prices · holders</text>
+<rect x="1618" y="626" width="244" height="56" rx="8" fill="#e8f0fe" stroke="#4285f4" stroke-width="2"/>
+<text x="1740.0" y="645.0" fill="#202124" font-size="14" font-weight="600" text-anchor="middle" dominant-baseline="middle">10-K RAG</text>
+<text x="1740.0" y="665.0" fill="#5f6368" font-size="11.5" text-anchor="middle" dominant-baseline="middle">TF-IDF</text>
+<rect x="1618" y="692" width="244" height="62" rx="8" fill="#e8f0fe" stroke="#4285f4" stroke-width="2"/>
+<text x="1740.0" y="714.0" fill="#202124" font-size="14" font-weight="600" text-anchor="middle" dominant-baseline="middle">Observability</text>
+<text x="1740.0" y="734.0" fill="#5f6368" font-size="11.5" text-anchor="middle" dominant-baseline="middle">SQLite · collectors</text>
+<path d="M1560,360 H1580 V270 H1600" stroke="#9aa0a6" stroke-width="1.8" fill="none" marker-end="url(#ar)"/>
+<path d="M1560,560 H1580 V600 H1600" stroke="#9aa0a6" stroke-width="1.8" fill="none" marker-end="url(#ar)"/>
+<text x="2065" y="70" fill="#5f6368" font-size="15" font-weight="700" text-anchor="middle" letter-spacing=".4">EXTERNAL APIS</text>
+<rect x="1930" y="120" width="300" height="670" rx="12" fill="none" stroke="#dadce0" stroke-width="1.4"/>
+<rect x="1950" y="170" width="260" height="60" rx="8" fill="#e8f0fe" stroke="#4285f4" stroke-width="2"/>
+<text x="2080.0" y="200.0" fill="#202124" font-size="14" font-weight="600" text-anchor="middle" dominant-baseline="middle">Google Gemini API</text>
+<rect x="1950" y="250" width="260" height="60" rx="8" fill="#e8f0fe" stroke="#4285f4" stroke-width="2"/>
+<text x="2080.0" y="280.0" fill="#202124" font-size="14" font-weight="600" text-anchor="middle" dominant-baseline="middle">OpenAI API</text>
+<rect x="1950" y="470" width="260" height="60" rx="8" fill="#e8f0fe" stroke="#4285f4" stroke-width="2"/>
+<text x="2080.0" y="491.0" fill="#202124" font-size="14" font-weight="600" text-anchor="middle" dominant-baseline="middle">Financial Modeling Prep</text>
+<text x="2080.0" y="511.0" fill="#5f6368" font-size="11.5" text-anchor="middle" dominant-baseline="middle">REST + MCP</text>
+<rect x="1950" y="560" width="260" height="60" rx="8" fill="#e8f0fe" stroke="#4285f4" stroke-width="2"/>
+<text x="2080.0" y="590.0" fill="#202124" font-size="14" font-weight="600" text-anchor="middle" dominant-baseline="middle">Yahoo Finance</text>
+<text x="36" y="836" fill="#9aa0a6" font-size="12">Left-to-right request flow: browser → Streamlit → LangGraph orchestrator → 15-node analytics DAG (Stages 1–2 parallel) → sequential synthesis. Platform services back the analytics layer; dashed edges are external API calls.</text>
+</svg>

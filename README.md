@@ -26,6 +26,10 @@ An AI commentary layer and numerical grounding evaluator sit on top — the LLM 
 
 ## Architecture
 
+![Invictus System Architecture](assets/system_architecture.png)
+
+The platform is organized as six layers — a Streamlit presentation tier, a LangGraph orchestration tier, and the analytics, LLM, and data layers beneath it — calling out to FMP, Yahoo Finance, and the Gemini/OpenAI APIs. The execution DAG within the analytics layer is shown below.
+
 ![Portfolio Processing Pipeline](assets/architecture.svg)
 
 Built on **LangGraph StateGraph** with fan-out/fan-in edges and barrier nodes for parallel execution. 15 registered compute nodes + 2 synchronization barriers. Stages 1–2 run up to 10 nodes in parallel; stages 3–7 execute sequentially.
