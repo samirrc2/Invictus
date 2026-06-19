@@ -26,30 +26,7 @@ An AI commentary layer and numerical grounding evaluator sit on top — the LLM 
 
 ## Architecture
 
-```
-                    load_portfolio
-                         │
-           ┌─────────────┴─────────────┐
-           │  STAGE 1 (6 parallel)      │
-           │  risk · pca · vol_regime   │
-           │  stress · greeks · pnl     │
-           └─────────────┬─────────────┘
-                    (fan-in barrier)
-           ┌─────────────┴─────────────┐
-           │  STAGE 2 (4 parallel)      │
-           │  flows · 10k_rag          │
-           │  filing_intel · earnings   │
-           └─────────────┬─────────────┘
-                    (fan-in barrier)
-                         │
-                 accumulation_model
-                         │
-               conviction_synthesis
-                         │
-               generate_commentary
-                         │
-              evaluate_commentary
-```
+![Portfolio Processing Pipeline](assets/architecture.svg)
 
 Built on **LangGraph StateGraph** with fan-out/fan-in edges and barrier nodes for parallel execution. 15 registered compute nodes + 2 synchronization barriers. Stages 1–2 run up to 10 nodes in parallel; stages 3–7 execute sequentially.
 
