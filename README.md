@@ -102,39 +102,169 @@ Accessible via the Developer Console (`?dev=invictus` URL parameter), the platfo
 ## Project Structure
 
 ```
-invictus/
-├── agents/              # 15 compute nodes + orchestrator + state schema
-│   ├── orchestrator.py  # LangGraph StateGraph — 15 nodes, 2 barriers, 7 stages
-│   ├── graph_state.py   # Pydantic PortfolioState container
-│   ├── risk_agent.py    # VaR, CVaR, Sharpe, Sortino, drawdown, MCTR
-│   ├── flow_agent.py    # 3-bucket institutional flow scoring
-│   ├── synthesis_agent.py # Bayesian conviction synthesis + Monte Carlo
-│   ├── ml_agent.py      # Bayesian accumulation signal model (v4)
-│   ├── outlook_agent.py # Management outlook — 6 dimensions + credibility
-│   └── ...              # 8 more nodes
-├── pages/
-│   ├── landing/         # How It Works — system architecture + methodology
-│   ├── portfolio/       # 7 sub-tabs: dashboard, risk, PCA, vol, stress, greeks, P&L
-│   ├── conviction/      # 4 sub-tabs: engine, flows, outlook, transcripts
-│   ├── dev_analytics/   # 11 sub-tabs: architecture through backtest
-│   └── hypo_simulator.py # Allocation Engine — hypothetical what-if analysis
-├── observability/
-│   ├── collectors/      # 6 telemetry collectors (agent, LLM, ML, conviction, data, session)
-│   └── analyzers/       # 3 diagnostic analyzers (calibration, drift, hallucination)
-├── evaluation/          # Grounding, consistency, cost, backtest tracker
-├── backtest/            # Walk-forward engine: config, data loader, runner, analyzer
-├── design/              # Design system — tokens, components, formatters, charts, nav
-├── data/
-│   ├── demo/            # Cached demo data for Streamlit Cloud fallback
-│   └── portfolio_loader.py
-├── rag/                 # SEC 10-K retrieval (TF-IDF + chunking)
-├── llm.py               # Centralized LLM gateway (Gemini → OpenAI fallback)
-├── fmp_client.py        # Shared FMP API client
-└── config.py            # All constants, API keys, thresholds
-app.py                   # Streamlit entry point — thin routing shell
+Invictus/
+├── app.py                              # Streamlit entry point — routing shell
+├── requirements.txt
+├── sample_portfolio.csv
+├── LICENSE
+├── README.md
+├── TECHNICAL_ARCHITECTURE.md
+├── .env.example
+│
+├── scripts/
+│   ├── cache_flow_data.py
+│   └── download_fmp_demo.py
+│
+└── invictus/
+    ├── __init__.py
+    ├── config.py                       # Constants, API keys, thresholds
+    ├── llm.py                          # Centralized LLM gateway (Gemini → OpenAI fallback)
+    ├── fmp_client.py                   # Shared FMP API client
+    │
+    ├── agents/                         # 15 compute nodes + orchestrator
+    │   ├── orchestrator.py             # LangGraph StateGraph — 15 nodes, 2 barriers, 7 stages
+    │   ├── graph_state.py              # Pydantic PortfolioState container
+    │   ├── risk_agent.py               # VaR, CVaR, Sharpe, Sortino, drawdown, MCTR
+    │   ├── pca_agent.py                # Principal component factor decomposition
+    │   ├── vol_regime_agent.py         # K-Means volatility regime detection
+    │   ├── stress_agent.py             # 5 historical scenario replay
+    │   ├── greeks_agent.py             # Black-Scholes delta, gamma, vega, theta
+    │   ├── pnl_agent.py               # Return decomposition (market, sector, idiosyncratic)
+    │   ├── flow_agent.py               # 3-bucket institutional flow scoring
+    │   ├── filing_agent.py             # Fundamental signals via yfinance + FMP
+    │   ├── earnings_agent.py           # Earnings surprise + sentiment analysis
+    │   ├── outlook_agent.py            # Management outlook — 6 dimensions + credibility
+    │   ├── ml_agent.py                 # Bayesian accumulation signal model (v4)
+    │   ├── synthesis_agent.py          # Bayesian conviction synthesis + Monte Carlo
+    │   ├── commentary_agent.py         # LLM-generated portfolio narrative
+    │   └── hypo_agent.py               # Hypothetical allocation risk engine
+    │
+    ├── data/
+    │   ├── portfolio_loader.py         # CSV parsing, price fetch, state computation
+    │   ├── smart_loader.py             # AI-powered CSV column detection
+    │   └── demo/                       # Cached FMP data for Streamlit Cloud fallback
+    │       ├── manifest.json
+    │       ├── aapl/                   # 10 files: analyst_estimates, analyst_grades,
+    │       ├── amd/                    #   earnings_calendar, earnings_surprises,
+    │       ├── meta/                   #   flow_data, income_statement, insider_trading,
+    │       ├── smh/                    #   press_releases, stock_news, transcripts
+    │       └── tsla/
+    │
+    ├── pages/
+    │   ├── hypo_simulator.py           # Allocation Engine UI
+    │   │
+    │   ├── landing/
+    │   │   ├── __init__.py             # Landing page router
+    │   │   ├── hero.py                 # Hero section + capability cards + topology
+    │   │   ├── how_it_works.py         # Interactive screenshot walkthrough
+    │   │   ├── _content.py             # Tab content data for How It Works
+    │   │   └── _shared.py              # Shared landing page helpers
+    │   │
+    │   ├── portfolio/
+    │   │   ├── __init__.py             # Portfolio Intelligence router
+    │   │   ├── dashboard.py            # Overview — holdings, top movers, health
+    │   │   ├── risk.py                 # Risk Analytics — VaR, Sharpe, drawdown, MCTR
+    │   │   ├── pca.py                  # Factor Decomposition — PCA loadings
+    │   │   ├── vol_regime.py           # Volatility Regimes — K-Means clustering
+    │   │   ├── stress.py               # Stress Scenarios — 5 historical replays
+    │   │   ├── greeks.py               # Sensitivity Analysis — Black-Scholes Greeks
+    │   │   ├── attribution.py          # P&L Attribution — return decomposition
+    │   │   └── _shared.py
+    │   │
+    │   ├── conviction/
+    │   │   ├── __init__.py             # Conviction Intelligence router
+    │   │   ├── engine.py               # Conviction Engine — composite probability
+    │   │   ├── flows.py                # Capital Flows — insider + fund + concentration
+    │   │   ├── outlook.py              # Management Outlook — 6 dimensions
+    │   │   ├── transcript.py           # Transcript Analysis — credibility model
+    │   │   ├── _engine_overview.py     # Engine sub-component: conviction cards
+    │   │   ├── _engine_signals.py      # Engine sub-component: signal waterfall
+    │   │   ├── _engine_confidence.py   # Engine sub-component: Monte Carlo CI
+    │   │   └── _shared.py
+    │   │
+    │   └── dev_analytics/
+    │       ├── __init__.py             # Dev Console router
+    │       ├── error_log.py            # Structured error display with tracebacks
+    │       ├── visitor_log.py          # IP/geolocation session tracking
+    │       ├── architecture.py         # LangGraph topology visualization
+    │       ├── agent_perf.py           # Node latency + throughput
+    │       ├── llm_quality.py          # Grounding rate, cost, determinism
+    │       ├── ml_monitoring.py        # Bayesian model drift + calibration
+    │       ├── conviction_analytics.py # Signal quality + hit rates
+    │       ├── conviction_intel.py     # Per-ticker conviction deep-dive
+    │       ├── session.py              # Session analytics + pipeline history
+    │       ├── data_health.py          # Data source availability + freshness
+    │       ├── cost.py                 # LLM cost breakdown per node
+    │       ├── eval_metrics.py         # Grounding + consistency evaluator results
+    │       ├── backtest.py             # Walk-forward backtest UI
+    │       └── _shared.py
+    │
+    ├── design/
+    │   ├── __init__.py                 # Public exports: inject_styles, render_*, BRAND_*
+    │   ├── tokens.py                   # Color palette, spacing, font sizes
+    │   ├── styles.py                   # Global CSS injection
+    │   ├── components.py               # Metric cards, section headers, badges
+    │   ├── charts.py                   # Plotly/Matplotlib chart helpers
+    │   ├── formatters.py               # Currency, percentage, delta formatting
+    │   └── nav.py                      # Sidebar navigation rendering
+    │
+    ├── evaluation/
+    │   ├── grounding_evaluator.py      # Numerical claim verification
+    │   ├── consistency_evaluator.py    # Cross-run stability (CoV)
+    │   ├── cost_analyzer.py            # Token usage + cost per node
+    │   ├── backtest_tracker.py         # Conviction vs forward returns tracker
+    │   └── eval_agent.py              # Eval orchestrator node
+    │
+    ├── backtest/
+    │   ├── config.py                   # Backtest parameters + quality modes
+    │   ├── data_loader.py              # Point-in-time historical data loader
+    │   ├── runner.py                   # Walk-forward replay engine
+    │   └── analyzer.py                 # Hit rates, IC, calibration, P&L curves
+    │
+    ├── observability/
+    │   ├── store.py                    # SQLite WAL-mode connection manager
+    │   ├── schema.py                   # Table definitions (agent_runs, llm_calls, visitor_log, …)
+    │   ├── collectors/
+    │   │   ├── agent_collector.py      # Node latency + success/error logging
+    │   │   ├── llm_collector.py        # Token counts, model, prompt/response
+    │   │   ├── ml_collector.py         # Bayesian model parameters + drift
+    │   │   ├── conviction_collector.py # Signal scores + composite tracking
+    │   │   ├── session_collector.py    # Pipeline start/complete + session metadata
+    │   │   ├── data_collector.py       # Data source health + freshness
+    │   │   └── visitor_collector.py    # IP geolocation + session tracking
+    │   └── analyzers/
+    │       ├── hallucination.py        # Grounding rate analysis
+    │       ├── drift.py                # ML parameter drift detection
+    │       └── calibration.py          # Conviction calibration curves
+    │
+    ├── analytics/
+    │   └── tracker.py                  # Session ID generation
+    │
+    ├── rag/
+    │   ├── rag_agent.py                # TF-IDF retrieval over chunked 10-K filings
+    │   └── filings/
+    │       ├── AAPL_10K.txt
+    │       ├── AMD_10K.txt
+    │       ├── META_10K.txt
+    │       └── TSLA_10K.txt
+    │
+    └── static/
+        ├── logo.png
+        └── landing/                    # Screenshots for How It Works walkthrough
+            ├── Overview/               (2 screenshots)
+            ├── Risk Analytics/         (2 screenshots)
+            ├── Factor Decomposition/   (2 screenshots)
+            ├── Volatility Regimes/     (1 screenshot)
+            ├── Stress Scenarios/       (2 screenshots)
+            ├── P&L Attribution/        (2 screenshots)
+            ├── Conviction Engine/      (2 screenshots)
+            ├── Capital Flows/          (2 screenshots)
+            ├── Management Outlook/     (2 screenshots)
+            ├── Transcript Analysis/    (2 screenshots)
+            └── Run Allocation Simulation/ (2 screenshots)
 ```
 
-**106 Python files · ~21,700 lines of code**
+**106 Python files · ~22,800 lines of code**
 
 ---
 
